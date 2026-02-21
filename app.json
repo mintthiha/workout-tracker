@@ -41,12 +41,6 @@
 			"expo-router",
 			"expo-task-manager",
 			[
-				"expo-av",
-				{
-					"microphonePermission": false
-				}
-			],
-			[
 				"expo-notifications",
 				{
 					"icon": "./assets/images/icon.png",

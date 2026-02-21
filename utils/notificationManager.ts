@@ -26,7 +26,7 @@ export async function setupNotificationChannels(): Promise<void> {
 	await Notifications.setNotificationChannelAsync("timer-beeps", {
 		name: "Timer Beeps",
 		importance: Notifications.AndroidImportance.HIGH,
-		sound: "beep.mp3",
+		sound: "osubeep.mp3",
 		enableVibrate: false,
 	});
 
@@ -40,7 +40,7 @@ export async function setupNotificationChannels(): Promise<void> {
 	await Notifications.setNotificationChannelAsync("timer-start", {
 		name: "Interval Start",
 		importance: Notifications.AndroidImportance.HIGH,
-		sound: "start.mp3",
+		sound: "osubeep.mp3",
 		enableVibrate: false,
 	});
 }
