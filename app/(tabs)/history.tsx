@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -35,6 +36,28 @@ const WORKOUT_HISTORY = [
   },
 ];
 export default function HistoryScreen() {
+  const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
+  const cardBorder = useThemeColor(
+    { light: "#e0e0e0", dark: "#2c2c2e" },
+    "cardBorder",
+  );
+  const secondaryText = useThemeColor(
+    { light: "#666666", dark: "#8e8e93" },
+    "secondaryText",
+  );
+  const tertiaryText = useThemeColor(
+    { light: "#999999", dark: "#666666" },
+    "tertiaryText",
+  );
+  const textColor = useThemeColor(
+    { light: "#161d22", dark: "#ECEDEE" },
+    "text",
+  );
+  const accentColor = useThemeColor(
+    { light: "#3498db", dark: "#3498db" },
+    "accent",
+  );
+
   return (
     <ThemedView style={styles.container}>
       {/* Header Section */}
@@ -43,58 +66,96 @@ export default function HistoryScreen() {
           History
         </ThemedText>
         <TouchableOpacity>
-          <ThemedText style={styles.calendarLink}>Calendar</ThemedText>
+          <ThemedText style={[styles.calendarLink, { color: accentColor }]}>
+            Calendar
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedText style={styles.monthHeader}>FEBRUARY 2026</ThemedText>
+        <ThemedText style={[styles.monthHeader, { color: secondaryText }]}>
+          FEBRUARY 2026
+        </ThemedText>
 
         {WORKOUT_HISTORY.map((workout) => (
-          <View key={workout.id} style={styles.card}>
+          <View
+            key={workout.id}
+            style={[
+              styles.card,
+              { backgroundColor: cardBg, borderColor: cardBorder },
+            ]}
+          >
             <View style={styles.cardHeader}>
               <ThemedText type="defaultSemiBold" style={styles.workoutTitle}>
                 {workout.title}
               </ThemedText>
               <TouchableOpacity>
-                <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={20}
+                  color={secondaryText}
+                />
               </TouchableOpacity>
             </View>
 
-            <ThemedText style={styles.dateText}>{workout.date}</ThemedText>
+            <ThemedText style={[styles.dateText, { color: secondaryText }]}>
+              {workout.date}
+            </ThemedText>
 
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={16} color="#999" />
-                <ThemedText style={styles.statText}>
+                <Ionicons name="time-outline" size={16} color={tertiaryText} />
+                <ThemedText style={[styles.statText, { color: secondaryText }]}>
                   {workout.duration}
                 </ThemedText>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="barbell-outline" size={16} color="#999" />
-                <ThemedText style={styles.statText}>
+                <Ionicons
+                  name="barbell-outline"
+                  size={16}
+                  color={tertiaryText}
+                />
+                <ThemedText style={[styles.statText, { color: secondaryText }]}>
                   {workout.weight}
                 </ThemedText>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="trophy-outline" size={16} color="#999" />
-                <ThemedText style={styles.statText}>
+                <Ionicons
+                  name="trophy-outline"
+                  size={16}
+                  color={tertiaryText}
+                />
+                <ThemedText style={[styles.statText, { color: secondaryText }]}>
                   {workout.prs} PRs
                 </ThemedText>
               </View>
             </View>
 
             <View style={styles.exerciseHeaderRow}>
-              <ThemedText style={styles.columnLabel}>Exercise</ThemedText>
-              <ThemedText style={styles.columnLabel}>Best Set</ThemedText>
+              <ThemedText
+                style={[styles.columnLabel, { color: secondaryText }]}
+              >
+                Exercise
+              </ThemedText>
+              <ThemedText
+                style={[styles.columnLabel, { color: secondaryText }]}
+              >
+                Best Set
+              </ThemedText>
             </View>
 
             {workout.exercises.map((ex, index) => (
               <View key={index} style={styles.exerciseRow}>
-                <ThemedText style={styles.exerciseText}>
+                <ThemedText
+                  style={[styles.exerciseText, { color: secondaryText }]}
+                >
                   {ex.sets} × {ex.name}
                 </ThemedText>
-                <ThemedText style={styles.exerciseText}>{ex.best}</ThemedText>
+                <ThemedText
+                  style={[styles.exerciseText, { color: secondaryText }]}
+                >
+                  {ex.best}
+                </ThemedText>
               </View>
             ))}
           </View>
@@ -121,7 +182,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   calendarLink: {
-    color: "#3498db",
     fontSize: 17,
     marginBottom: 8,
   },
@@ -130,19 +190,16 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   monthHeader: {
-    color: "#666",
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 15,
     textTransform: "uppercase",
   },
   card: {
-    backgroundColor: "#1c1c1e",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#2c2c2e",
   },
   cardHeader: {
     flexDirection: "row",
@@ -152,10 +209,8 @@ const styles = StyleSheet.create({
   },
   workoutTitle: {
     fontSize: 20,
-    color: "#fff",
   },
   dateText: {
-    color: "#8e8e93",
     marginBottom: 12,
   },
   statsRow: {
@@ -169,7 +224,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statText: {
-    color: "#8e8e93",
     fontSize: 14,
   },
   exerciseHeaderRow: {
@@ -178,7 +232,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   columnLabel: {
-    color: "#fff",
     fontWeight: "700",
     fontSize: 16,
   },
@@ -188,7 +241,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   exerciseText: {
-    color: "#8e8e93",
     fontSize: 15,
   },
 });
