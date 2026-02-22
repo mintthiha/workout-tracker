@@ -1,107 +1,246 @@
-import { Image } from "expo-image";
-import { Platform, StyleSheet } from "react-native";
-
-import { HelloWave } from "@/components/hello-wave";
-import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Link } from "expo-router";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { Ionicons } from "@expo/vector-icons";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
+// Mock data to keep the component clean
+const WORKOUT_HISTORY = [
+  {
+    id: "1",
+    title: "pull",
+    date: "Monday, Feb 20 2026",
+    duration: "55min",
+    weight: "1970 lb",
+    prs: 5,
+    exercises: [
+      { name: "Chest Press (M...", sets: 1, best: "180 lb x 8" },
+      { name: "Incline Bench P...", sets: 2, best: "75 lb x 7" },
+      { name: "Pec Deck (Mac...", sets: 2, best: "120 lb x 10" },
+      { name: "Skullcrusher (B...", sets: 2, best: "40 lb x 9" },
+    ],
+  },
+  {
+    id: "2",
+    title: "push",
+    date: "Tuesday, Feb 21 2026",
+    duration: "1h 1min",
+    weight: "8600 lb",
+    prs: 21,
+    exercises: [
+      { name: "Chest Press (M...", sets: 3, best: "150 lb x 8" },
+      { name: "Incline Bench P...", sets: 2, best: "45 lb x 8" },
+      { name: "Pec Deck (Mac...", sets: 2, best: "110 lb x 10" },
+      { name: "Skullcrusher (B...", sets: 2, best: "40 lb x 14" },
+    ],
+  },
+];
 export default function HistoryScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/partial-react-logo.png")}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-          to see changes. Press{" "}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: "cmd + d",
-              android: "cmd + m",
-              web: "F12",
-            })}
-          </ThemedText>{" "}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction
-              title="Action"
-              icon="cube"
-              onPress={() => alert("Action pressed")}
-            />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert("Share pressed")}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert("Delete pressed")}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
+  const cardBorder = useThemeColor(
+    { light: "#e0e0e0", dark: "#2c2c2e" },
+    "cardBorder",
+  );
+  const secondaryText = useThemeColor(
+    { light: "#666666", dark: "#8e8e93" },
+    "secondaryText",
+  );
+  const tertiaryText = useThemeColor(
+    { light: "#999999", dark: "#666666" },
+    "tertiaryText",
+  );
+  const textColor = useThemeColor(
+    { light: "#161d22", dark: "#ECEDEE" },
+    "text",
+  );
+  const accentColor = useThemeColor(
+    { light: "#3498db", dark: "#3498db" },
+    "accent",
+  );
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+  return (
+    <ThemedView style={styles.container}>
+      {/* Header Section */}
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.headerTitle}>
+          History
         </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">
-            npm run reset-project
-          </ThemedText>{" "}
-          to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText>{" "}
-          directory. This will move the current{" "}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{" "}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+        <TouchableOpacity>
+          <ThemedText style={[styles.calendarLink, { color: accentColor }]}>
+            Calendar
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ThemedText style={[styles.monthHeader, { color: secondaryText }]}>
+          FEBRUARY 2026
         </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+
+        {WORKOUT_HISTORY.map((workout) => (
+          <View
+            key={workout.id}
+            style={[
+              styles.card,
+              { backgroundColor: cardBg, borderColor: cardBorder },
+            ]}
+          >
+            <View style={styles.cardHeader}>
+              <ThemedText type="defaultSemiBold" style={styles.workoutTitle}>
+                {workout.title}
+              </ThemedText>
+              <TouchableOpacity>
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={20}
+                  color={secondaryText}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ThemedText style={[styles.dateText, { color: secondaryText }]}>
+              {workout.date}
+            </ThemedText>
+
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Ionicons name="time-outline" size={16} color={tertiaryText} />
+                <ThemedText style={[styles.statText, { color: secondaryText }]}>
+                  {workout.duration}
+                </ThemedText>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons
+                  name="barbell-outline"
+                  size={16}
+                  color={tertiaryText}
+                />
+                <ThemedText style={[styles.statText, { color: secondaryText }]}>
+                  {workout.weight}
+                </ThemedText>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons
+                  name="trophy-outline"
+                  size={16}
+                  color={tertiaryText}
+                />
+                <ThemedText style={[styles.statText, { color: secondaryText }]}>
+                  {workout.prs} PRs
+                </ThemedText>
+              </View>
+            </View>
+
+            <View style={styles.exerciseHeaderRow}>
+              <ThemedText
+                style={[styles.columnLabel, { color: secondaryText }]}
+              >
+                Exercise
+              </ThemedText>
+              <ThemedText
+                style={[styles.columnLabel, { color: secondaryText }]}
+              >
+                Best Set
+              </ThemedText>
+            </View>
+
+            {workout.exercises.map((ex, index) => (
+              <View key={index} style={styles.exerciseRow}>
+                <ThemedText
+                  style={[styles.exerciseText, { color: secondaryText }]}
+                >
+                  {ex.sets} × {ex.name}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.exerciseText, { color: secondaryText }]}
+                >
+                  {ex.best}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  container: {
+    flex: 1,
+    paddingTop: 60,
   },
-  stepContainer: {
-    gap: 8,
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 34,
+    fontWeight: "800",
+  },
+  calendarLink: {
+    fontSize: 17,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
+  monthHeader: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 15,
+    textTransform: "uppercase",
+  },
+  card: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  workoutTitle: {
+    fontSize: 20,
+  },
+  dateText: {
+    marginBottom: 12,
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 15,
+    marginBottom: 16,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statText: {
+    fontSize: 14,
+  },
+  exerciseHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  columnLabel: {
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  exerciseRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  exerciseText: {
+    fontSize: 15,
   },
 });
