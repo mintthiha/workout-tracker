@@ -25,6 +25,7 @@ const MAPPING = {
   "dumbbell.fill": "fitness-center",
   "clock.fill": "access-time",
   "book.fill": "menu-book",
+  "stopwatch.fill": "timer",
 } as IconMapping;
 
 /**
