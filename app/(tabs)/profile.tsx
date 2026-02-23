@@ -6,7 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
-// 2. Map levels to GitHub-style greens
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../src/lib/firebase";
+
 const getLevelColor = (level: number) => {
   switch (level) {
     case 1: return "#9be9a8"; // Lightest green
@@ -14,6 +16,20 @@ const getLevelColor = (level: number) => {
     case 3: return "#30a14e";
     case 4: return "#216e39"; // Darkest green
     default: return "#ebedf0"; // Empty/Gray
+  }
+};
+
+const testFirebaseConnection = async () => {
+  try {
+    const docRef = await addDoc(collection(db, "connection_tests"), {
+      source: "ProfileScreen",
+      randomValue: Math.floor(Math.random() * 1000),
+      createdAt: serverTimestamp(),
+    });
+
+    console.log("✅ Firebase connected! Doc ID:", docRef.id);
+  } catch (error) {
+    console.error("❌ Firebase connection failed:", error);
   }
 };
 
@@ -51,12 +67,28 @@ export default function ProfileScreen() {
 
           <View style={styles.separator} />
 
-{/* 4. Activity Section */}
+            {/* 4. Activity Section */}
           <ThemedView style={styles.dashboardContainer}>
             <ThemedText style={styles.activityTitle}>Activity</ThemedText>
             <ThemedText style={styles.contributionCount}>
               11 workout sessions completed in the past month
             </ThemedText>
+
+            <TouchableOpacity
+              onPress={testFirebaseConnection}
+              style={{
+                alignSelf: "flex-start",
+                paddingVertical: 8,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                backgroundColor: "#2563eb",
+                marginBottom: 16,
+              }}
+            >
+              <ThemedText style={{ color: "white", fontSize: 14 }}>
+                Test Firebase Connection
+              </ThemedText>
+            </TouchableOpacity>
 
             <ThemedView style={styles.heatmapCard}>
               {/* Horizontal ScrollView makes the grid accessible on small screens */}
