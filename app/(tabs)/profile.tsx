@@ -1,39 +1,46 @@
 import { Image } from "expo-image";
-import { StyleSheet, TouchableOpacity, View, ScrollView } from "react-native";
+import { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../src/lib/firebase";
+import { getUserProfile, UserProfile } from "../../src/lib/userService";
+
+// TODO: Replace with real auth user ID once Firebase Auth is wired up, and 
+// implementing the login page.
+const TEMP_USER_ID = "default_user";
 
 const getLevelColor = (level: number) => {
   switch (level) {
-    case 1: return "#9be9a8"; // Lightest green
+    case 1: return "#9be9a8";
     case 2: return "#40c463";
     case 3: return "#30a14e";
-    case 4: return "#216e39"; // Darkest green
-    default: return "#ebedf0"; // Empty/Gray
-  }
-};
-
-const testFirebaseConnection = async () => {
-  try {
-    const docRef = await addDoc(collection(db, "connection_tests"), {
-      source: "ProfileScreen",
-      randomValue: Math.floor(Math.random() * 1000),
-      createdAt: serverTimestamp(),
-    });
-
-    console.log("✅ Firebase connected! Doc ID:", docRef.id);
-  } catch (error) {
-    console.error("❌ Firebase connection failed:", error);
+    case 4: return "#216e39";
+    default: return "#ebedf0";
   }
 };
 
 export default function ProfileScreen() {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const profile = await getUserProfile(TEMP_USER_ID);
+      setUser(profile);
+      setLoading(false);
+    })();
+  }, []);
+
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -51,97 +58,92 @@ export default function ProfileScreen() {
             <ThemedText type="title" style={{ fontSize: 36 }}>Profile</ThemedText>
           </ThemedView>
 
-          {/* Profile Section */}
-          <ThemedView style={styles.profileSection}>
-             <Image
-               source={require("../../assets/images/deermic.webp")}
-               style={styles.profileImage}
-             />
-            <View style={styles.profileInfo}>
-              <ThemedText type="defaultSemiBold" style={styles.name}>
-                Thiha Mint
+          {loading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} size="large" />
+          ) : !user ? (
+            /* ── No User Warning ── */
+            <ThemedView style={styles.noUserContainer}>
+              <Ionicons name="person-circle-outline" size={56} color="gray" />
+              <ThemedText style={styles.noUserText}>No profile found.</ThemedText>
+              <ThemedText style={styles.noUserSubtext}>
+                Make sure a user document exists in Firestore under{" "}
+                <ThemedText style={styles.noUserCode}>users/default_user</ThemedText>.
               </ThemedText>
-              <ThemedText style={styles.username}>@mintthers_dev</ThemedText>
-            </View>
-          </ThemedView>
-
-          <View style={styles.separator} />
-
-            {/* 4. Activity Section */}
-          <ThemedView style={styles.dashboardContainer}>
-            <ThemedText style={styles.activityTitle}>Activity</ThemedText>
-            <ThemedText style={styles.contributionCount}>
-              11 workout sessions completed in the past month
-            </ThemedText>
-
-            <TouchableOpacity
-              onPress={testFirebaseConnection}
-              style={{
-                alignSelf: "flex-start",
-                paddingVertical: 8,
-                paddingHorizontal: 14,
-                borderRadius: 8,
-                backgroundColor: "#2563eb",
-                marginBottom: 16,
-              }}
-            >
-              <ThemedText style={{ color: "white", fontSize: 14 }}>
-                Test Firebase Connection
-              </ThemedText>
-            </TouchableOpacity>
-
-            <ThemedView style={styles.heatmapCard}>
-              {/* Horizontal ScrollView makes the grid accessible on small screens */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.heatmapInternalContainer}>
-                  
-                  {/* Months Row */}
-                  <View style={styles.monthsRow}>
-                    {["Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan"].map((month) => (
-                      <ThemedText key={month} style={styles.monthLabel}>{month}</ThemedText>
-                    ))}
-                  </View>
-
-                  <View style={styles.gridContainer}>
-                    {/* Days Labels Column */}
-                    <View style={styles.daysColumn}>
-                      <ThemedText style={styles.dayLabel}>Mon</ThemedText>
-                      <ThemedText style={styles.dayLabel}>Wed</ThemedText>
-                      <ThemedText style={styles.dayLabel}>Fri</ThemedText>
-                    </View>
-
-                    {/* The Grid */}
-                    <View style={styles.grid}>
-                      {Array.from({ length: 53 }).map((_, colIndex) => (
-                        <View key={colIndex} style={styles.weekColumn}>
-                          {Array.from({ length: 7 }).map((_, rowIndex) => {
-                            const dayIndex = colIndex * 7 + rowIndex;
-                            const contribution = contributionData.find(d => d.day === dayIndex);
-                            const level = contribution ? contribution.level : 0;
-                            return (
-                              <View 
-                                key={rowIndex} 
-                                style={[styles.square, { backgroundColor: getLevelColor(level) }]} 
-                              />
-                            );
-                          })}
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-              </ScrollView>
-
-              {/* Legend Footer */}
-              <View style={styles.legendContainer}>
-                <ThemedText style={styles.legendText}>Less</ThemedText>
-                {[0, 1, 2, 3, 4].map((lvl) => (
-                  <View key={lvl} style={[styles.square, { backgroundColor: getLevelColor(lvl) }]} />
-                ))}
-                <ThemedText style={styles.legendText}>More</ThemedText>
-              </View>
             </ThemedView>
-          </ThemedView>
+          ) : (
+            /* ── Profile Display ── */
+            <>
+              <ThemedView style={styles.profileSection}>
+                <Image
+                  source={require("../../assets/images/deermic.webp")}
+                  style={styles.profileImage}
+                />
+                <View style={styles.profileInfo}>
+                  <ThemedText type="defaultSemiBold" style={styles.name}>
+                    {user.firstName} {user.lastName}
+                  </ThemedText>
+                  <ThemedText style={styles.username}>@{user.username}</ThemedText>
+                  <ThemedText style={styles.email}>{user.email}</ThemedText>
+                </View>
+              </ThemedView>
+
+              <View style={styles.separator} />
+
+              {/* Activity Section */}
+              <ThemedView style={styles.dashboardContainer}>
+                <ThemedText style={styles.activityTitle}>Activity</ThemedText>
+                <ThemedText style={styles.contributionCount}>
+                  11 workout sessions completed in the past month
+                </ThemedText>
+
+                <ThemedView style={styles.heatmapCard}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.heatmapInternalContainer}>
+                      <View style={styles.monthsRow}>
+                        {["Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan"].map((month) => (
+                          <ThemedText key={month} style={styles.monthLabel}>{month}</ThemedText>
+                        ))}
+                      </View>
+
+                      <View style={styles.gridContainer}>
+                        <View style={styles.daysColumn}>
+                          <ThemedText style={styles.dayLabel}>Mon</ThemedText>
+                          <ThemedText style={styles.dayLabel}>Wed</ThemedText>
+                          <ThemedText style={styles.dayLabel}>Fri</ThemedText>
+                        </View>
+
+                        <View style={styles.grid}>
+                          {Array.from({ length: 53 }).map((_, colIndex) => (
+                            <View key={colIndex} style={styles.weekColumn}>
+                              {Array.from({ length: 7 }).map((_, rowIndex) => {
+                                const dayIndex = colIndex * 7 + rowIndex;
+                                const contribution = contributionData.find(d => d.day === dayIndex);
+                                const level = contribution ? contribution.level : 0;
+                                return (
+                                  <View
+                                    key={rowIndex}
+                                    style={[styles.square, { backgroundColor: getLevelColor(level) }]}
+                                  />
+                                );
+                              })}
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+                  </ScrollView>
+
+                  <View style={styles.legendContainer}>
+                    <ThemedText style={styles.legendText}>Less</ThemedText>
+                    {[0, 1, 2, 3, 4].map((lvl) => (
+                      <View key={lvl} style={[styles.square, { backgroundColor: getLevelColor(lvl) }]} />
+                    ))}
+                    <ThemedText style={styles.legendText}>More</ThemedText>
+                  </View>
+                </ThemedView>
+              </ThemedView>
+            </>
+          )}
 
         </ScrollView>
       </SafeAreaView>
@@ -155,7 +157,7 @@ interface Contribution {
 }
 
 const contributionData: Contribution[] = [
-  { day: 1, level: 4 }, 
+  { day: 1, level: 4 },
   { day: 8, level: 3 },
 ];
 
@@ -172,6 +174,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 30,
   },
+  // ── No User Warning Section ──
+  noUserContainer: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    gap: 12,
+  },
+  noUserText: {
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  noUserSubtext: {
+    fontSize: 14,
+    color: "gray",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  noUserCode: {
+    fontFamily: "monospace",
+    color: "gray",
+  },
+  // ── Profile Section ──
   profileSection: {
     flexDirection: "row",
     alignItems: "center",
@@ -189,10 +213,15 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   username: {
     fontSize: 18,
+    color: "gray",
+    marginTop: 2,
+  },
+  email: {
+    fontSize: 14,
     color: "gray",
     marginTop: 2,
   },
@@ -205,62 +234,56 @@ const styles = StyleSheet.create({
   dashboardContainer: {
     paddingHorizontal: 24,
   },
-  heatmapWrapper: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: 16,
-  },
   activityTitle: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   contributionCount: {
     fontSize: 14,
-    color: 'gray',
+    color: "gray",
     marginBottom: 16,
   },
   heatmapCard: {
-    backgroundColor: 'rgba(0,0,0,0.03)', // Subtle background like GitHub dark mode cards
+    backgroundColor: "rgba(0,0,0,0.03)",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderColor: "rgba(0,0,0,0.05)",
   },
   heatmapInternalContainer: {
-    paddingRight: 20, // Extra space at the end of the scroll
+    paddingRight: 20,
   },
   monthsRow: {
-    flexDirection: 'row',
-    marginLeft: 35, // Aligns with the grid (offset for Mon/Wed/Fri labels)
+    flexDirection: "row",
+    marginLeft: 35,
     marginBottom: 8,
   },
   monthLabel: {
     fontSize: 10,
-    color: 'gray',
-    width: 32, // Consistent spacing for the month headers
+    color: "gray",
+    width: 32,
     marginRight: 4,
   },
   gridContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   daysColumn: {
     width: 35,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     paddingVertical: 2,
-    height: 110, // Matches height of 7 squares + gaps
+    height: 110,
   },
   dayLabel: {
     fontSize: 10,
-    color: 'gray',
+    color: "gray",
   },
   grid: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 3,
   },
   weekColumn: {
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 3,
   },
   square: {
@@ -269,15 +292,15 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   legendContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     marginTop: 16,
     gap: 4,
   },
   legendText: {
     fontSize: 11,
-    color: 'gray',
+    color: "gray",
     marginHorizontal: 4,
-  }
+  },
 });
