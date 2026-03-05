@@ -1,41 +1,27 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { useHistory } from "@/src/store/historyStore";
 import { Ionicons } from "@expo/vector-icons";
+import { useMemo } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
-// Mock data to keep the component clean
-const WORKOUT_HISTORY = [
-  {
-    id: "1",
-    title: "pull",
-    date: "Monday, Feb 20 2026",
-    duration: "55min",
-    weight: "1970 lb",
-    prs: 5,
-    exercises: [
-      { name: "Chest Press (M...", sets: 1, best: "180 lb x 8" },
-      { name: "Incline Bench P...", sets: 2, best: "75 lb x 7" },
-      { name: "Pec Deck (Mac...", sets: 2, best: "120 lb x 10" },
-      { name: "Skullcrusher (B...", sets: 2, best: "40 lb x 9" },
-    ],
-  },
-  {
-    id: "2",
-    title: "push",
-    date: "Tuesday, Feb 21 2026",
-    duration: "1h 1min",
-    weight: "8600 lb",
-    prs: 21,
-    exercises: [
-      { name: "Chest Press (M...", sets: 3, best: "150 lb x 8" },
-      { name: "Incline Bench P...", sets: 2, best: "45 lb x 8" },
-      { name: "Pec Deck (Mac...", sets: 2, best: "110 lb x 10" },
-      { name: "Skullcrusher (B...", sets: 2, best: "40 lb x 14" },
-    ],
-  },
-];
+function groupByMonth(entries: ReturnType<typeof useHistory>["entries"]) {
+  const map = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const list = map.get(entry.monthYear) ?? [];
+    list.push(entry);
+    map.set(entry.monthYear, list);
+  }
+  return map;
+}
+
 export default function HistoryScreen() {
+  const { entries, deleteEntry } = useHistory();
+
+  const grouped = useMemo(() => groupByMonth(entries), [entries]);
+  const months = Array.from(grouped.keys());
+
   const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
   const cardBorder = useThemeColor(
     { light: "#e0e0e0", dark: "#2c2c2e" },
@@ -49,10 +35,6 @@ export default function HistoryScreen() {
     { light: "#999999", dark: "#666666" },
     "tertiaryText",
   );
-  const textColor = useThemeColor(
-    { light: "#161d22", dark: "#ECEDEE" },
-    "text",
-  );
   const accentColor = useThemeColor(
     { light: "#3498db", dark: "#3498db" },
     "accent",
@@ -60,7 +42,7 @@ export default function HistoryScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Header Section */}
+      {/* Header */}
       <View style={styles.header}>
         <ThemedText type="title" style={styles.headerTitle}>
           History
@@ -73,89 +55,121 @@ export default function HistoryScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedText style={[styles.monthHeader, { color: secondaryText }]}>
-          FEBRUARY 2026
-        </ThemedText>
+        {months.length === 0 && (
+          <View style={styles.empty}>
+            <Ionicons name="time-outline" size={48} color={secondaryText} />
+            <ThemedText style={[styles.emptyText, { color: secondaryText }]}>
+              No workouts yet.{"\n"}Finish a workout to see it here.
+            </ThemedText>
+          </View>
+        )}
 
-        {WORKOUT_HISTORY.map((workout) => (
-          <View
-            key={workout.id}
-            style={[
-              styles.card,
-              { backgroundColor: cardBg, borderColor: cardBorder },
-            ]}
-          >
-            <View style={styles.cardHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.workoutTitle}>
-                {workout.title}
-              </ThemedText>
-              <TouchableOpacity>
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={20}
-                  color={secondaryText}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <ThemedText style={[styles.dateText, { color: secondaryText }]}>
-              {workout.date}
+        {months.map((month) => (
+          <View key={month}>
+            <ThemedText
+              style={[styles.monthHeader, { color: secondaryText }]}
+            >
+              {month}
             </ThemedText>
 
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={16} color={tertiaryText} />
-                <ThemedText style={[styles.statText, { color: secondaryText }]}>
-                  {workout.duration}
-                </ThemedText>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons
-                  name="barbell-outline"
-                  size={16}
-                  color={tertiaryText}
-                />
-                <ThemedText style={[styles.statText, { color: secondaryText }]}>
-                  {workout.weight}
-                </ThemedText>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons
-                  name="trophy-outline"
-                  size={16}
-                  color={tertiaryText}
-                />
-                <ThemedText style={[styles.statText, { color: secondaryText }]}>
-                  {workout.prs} PRs
-                </ThemedText>
-              </View>
-            </View>
-
-            <View style={styles.exerciseHeaderRow}>
-              <ThemedText
-                style={[styles.columnLabel, { color: secondaryText }]}
+            {grouped.get(month)!.map((workout) => (
+              <View
+                key={workout.id}
+                style={[
+                  styles.card,
+                  { backgroundColor: cardBg, borderColor: cardBorder },
+                ]}
               >
-                Exercise
-              </ThemedText>
-              <ThemedText
-                style={[styles.columnLabel, { color: secondaryText }]}
-              >
-                Best Set
-              </ThemedText>
-            </View>
+                <View style={styles.cardHeader}>
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={styles.workoutTitle}
+                  >
+                    {workout.title}
+                  </ThemedText>
+                  <TouchableOpacity onPress={() => deleteEntry(workout.id)}>
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={20}
+                      color={secondaryText}
+                    />
+                  </TouchableOpacity>
+                </View>
 
-            {workout.exercises.map((ex, index) => (
-              <View key={index} style={styles.exerciseRow}>
                 <ThemedText
-                  style={[styles.exerciseText, { color: secondaryText }]}
+                  style={[styles.dateText, { color: secondaryText }]}
                 >
-                  {ex.sets} × {ex.name}
+                  {workout.date}
                 </ThemedText>
-                <ThemedText
-                  style={[styles.exerciseText, { color: secondaryText }]}
-                >
-                  {ex.best}
-                </ThemedText>
+
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Ionicons
+                      name="time-outline"
+                      size={16}
+                      color={tertiaryText}
+                    />
+                    <ThemedText
+                      style={[styles.statText, { color: secondaryText }]}
+                    >
+                      {workout.duration}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Ionicons
+                      name="barbell-outline"
+                      size={16}
+                      color={tertiaryText}
+                    />
+                    <ThemedText
+                      style={[styles.statText, { color: secondaryText }]}
+                    >
+                      {workout.weight}
+                    </ThemedText>
+                  </View>
+                  {workout.prs > 0 && (
+                    <View style={styles.statItem}>
+                      <Ionicons
+                        name="trophy-outline"
+                        size={16}
+                        color={tertiaryText}
+                      />
+                      <ThemedText
+                        style={[styles.statText, { color: secondaryText }]}
+                      >
+                        {workout.prs} PRs
+                      </ThemedText>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.exerciseHeaderRow}>
+                  <ThemedText
+                    style={[styles.columnLabel, { color: secondaryText }]}
+                  >
+                    Exercise
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.columnLabel, { color: secondaryText }]}
+                  >
+                    Best Set
+                  </ThemedText>
+                </View>
+
+                {workout.exercises.map((ex, index) => (
+                  <View key={index} style={styles.exerciseRow}>
+                    <ThemedText
+                      style={[styles.exerciseText, { color: secondaryText }]}
+                    >
+                      {ex.sets} × {ex.name}
+                    </ThemedText>
+                    <ThemedText
+                      style={[styles.exerciseText, { color: secondaryText }]}
+                    >
+                      {ex.best}
+                    </ThemedText>
+                  </View>
+                ))}
               </View>
             ))}
           </View>
@@ -188,6 +202,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 40,
+  },
+  empty: {
+    alignItems: "center",
+    marginTop: 80,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
   },
   monthHeader: {
     fontSize: 13,
