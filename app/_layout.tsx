@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AppProvider } from "@/src/context/AppContext";
 
 import {
 	requestNotificationPermissions,
@@ -19,16 +20,9 @@ export const unstable_settings = {
 	anchor: "(tabs)",
 };
 
-export default function RootLayout() {
+// Separated so it runs inside AppProvider and can read the saved color scheme.
+function ThemedApp() {
 	const colorScheme = useColorScheme();
-
-	useEffect(() => {
-		async function setup() {
-			await setupNotificationChannels();
-			await requestNotificationPermissions();
-		}
-		setup();
-	}, []);
 
 	return (
 		<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -41,5 +35,21 @@ export default function RootLayout() {
 			</Stack>
 			<StatusBar style="auto" />
 		</ThemeProvider>
+	);
+}
+
+export default function RootLayout() {
+	useEffect(() => {
+		async function setup() {
+			await setupNotificationChannels();
+			await requestNotificationPermissions();
+		}
+		setup();
+	}, []);
+
+	return (
+		<AppProvider>
+			<ThemedApp />
+		</AppProvider>
 	);
 }

@@ -3,10 +3,12 @@ import {
 	AppState,
 	AppStateStatus,
 	StyleSheet,
-	Text,
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import {
 	initAudio,
 	playBeep,
@@ -215,74 +217,102 @@ export default function TimerScreen() {
 	const repNumber = Math.floor((segmentIndex % (REPS * 2)) / 2) + 1;
 	const isWork = currentSegment.type === "work";
 
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const timerColor = useThemeColor({}, "text");
+	const phaseColor = isWork ? "#4CAF50" : "#2196F3";
+
 	return (
-		<View style={styles.container}>
-			<Text style={styles.meta}>
-				Set {setNumber} of {SETS}
-			</Text>
-			<Text style={styles.meta}>
-				Rep {repNumber} of {REPS}
-			</Text>
-			<Text
-				style={[styles.phase, isWork ? styles.phaseWork : styles.phaseRest]}
-			>
-				{isWork ? "WORK" : "REST"}
-			</Text>
-			<Text style={styles.timer}>{formatTime(secondsRemaining)}</Text>
-			<Text style={styles.progress}>
-				Segment {segmentIndex + 1} of {TOTAL_SEGMENTS}
-			</Text>
-			<TouchableOpacity
-				style={[styles.button, isRunning && styles.buttonStop]}
-				onPress={isRunning ? stopTimer : startTimer}
-				activeOpacity={0.8}
-			>
-				<Text style={styles.buttonText}>{isRunning ? "Stop" : "Start"}</Text>
-			</TouchableOpacity>
-		</View>
+		<ThemedView style={styles.container}>
+			{/* Header */}
+			<ThemedText type="title" style={styles.headerTitle}>
+				Timer
+			</ThemedText>
+
+			{/* Centred timer content */}
+			<View style={styles.body}>
+				<View style={styles.metaRow}>
+					<ThemedText style={[styles.meta, { color: secondaryText }]}>
+						Set {setNumber} of {SETS}
+					</ThemedText>
+					<ThemedText style={[styles.meta, { color: secondaryText }]}>
+						Rep {repNumber} of {REPS}
+					</ThemedText>
+				</View>
+
+				<ThemedText style={[styles.phase, { color: phaseColor }]}>
+					{isWork ? "WORK" : "REST"}
+				</ThemedText>
+
+				<ThemedText style={[styles.timer, { color: timerColor }]}>
+					{formatTime(secondsRemaining)}
+				</ThemedText>
+
+				<ThemedText style={[styles.progress, { color: secondaryText }]}>
+					Segment {segmentIndex + 1} of {TOTAL_SEGMENTS}
+				</ThemedText>
+
+				<TouchableOpacity
+					style={[styles.button, isRunning ? styles.buttonStop : styles.buttonStart]}
+					onPress={isRunning ? stopTimer : startTimer}
+					activeOpacity={0.8}
+				>
+					<ThemedText style={styles.buttonText}>
+						{isRunning ? "Stop" : "Start"}
+					</ThemedText>
+				</TouchableOpacity>
+			</View>
+		</ThemedView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+		paddingTop: 60,
+		paddingHorizontal: 20,
+	},
+	headerTitle: {
+		fontSize: 34,
+		fontWeight: "800",
+		marginBottom: 0,
+	},
+	body: {
+		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#000",
-		gap: 8,
+		gap: 12,
+		paddingBottom: 40,
+	},
+	metaRow: {
+		flexDirection: "row",
+		gap: 24,
 	},
 	meta: {
-		color: "#666",
-		fontSize: 16,
+		fontSize: 17,
 	},
 	phase: {
 		fontSize: 28,
 		fontWeight: "700",
 		letterSpacing: 4,
-		marginTop: 12,
-	},
-	phaseWork: {
-		color: "#4CAF50",
-	},
-	phaseRest: {
-		color: "#2196F3",
+		marginTop: 8,
 	},
 	timer: {
-		color: "#fff",
-		fontSize: 80,
+		fontSize: 88,
 		fontVariant: ["tabular-nums"],
-		marginVertical: 16,
+		fontWeight: "300",
+		lineHeight: 100,
 	},
 	progress: {
-		color: "#444",
 		fontSize: 14,
-		marginBottom: 32,
 	},
 	button: {
-		backgroundColor: "#4CAF50",
-		paddingHorizontal: 56,
+		marginTop: 20,
+		paddingHorizontal: 64,
 		paddingVertical: 18,
 		borderRadius: 50,
+	},
+	buttonStart: {
+		backgroundColor: "#4CAF50",
 	},
 	buttonStop: {
 		backgroundColor: "#F44336",

@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -13,11 +13,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
-import { getUserProfile, UserProfile } from "../../src/lib/userService";
+import { useAppContext } from "@/src/context/AppContext";
+import { AppPreferences } from "@/src/lib/appStorage";
+import { getUserProfile } from "../../src/lib/userService";
 
-// TODO: Replace with real auth user ID once Firebase Auth is wired up, and 
+// TODO: Replace with real auth user ID once Firebase Auth is wired up, and
 // implementing the login page.
 const TEMP_USER_ID = "default_user";
+
+type ColorScheme = AppPreferences["colorScheme"];
+
+const THEME_CYCLE: ColorScheme[] = ["system", "light", "dark"];
+
+const THEME_ICON: Record<ColorScheme, React.ComponentProps<typeof Ionicons>["name"]> = {
+  system: "contrast-outline",
+  light: "sunny-outline",
+  dark: "moon-outline",
+};
 
 const getLevelColor = (level: number) => {
   switch (level) {
@@ -30,26 +42,39 @@ const getLevelColor = (level: number) => {
 };
 
 export default function ProfileScreen() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { userProfile, isLoaded, setAccount, preferences, updatePreferences } = useAppContext();
 
+  function cycleTheme() {
+    const next = THEME_CYCLE[(THEME_CYCLE.indexOf(preferences.colorScheme) + 1) % THEME_CYCLE.length];
+    updatePreferences({ colorScheme: next });
+  }
+
+  // Refresh from Firestore in the background; update cache if data changed.
   useEffect(() => {
     (async () => {
-      const profile = await getUserProfile(TEMP_USER_ID);
-      setUser(profile);
-      setLoading(false);
+      const fresh = await getUserProfile(TEMP_USER_ID);
+      if (fresh) {
+        const { password: _omit, ...profile } = fresh;
+        await setAccount(TEMP_USER_ID, profile);
+      }
     })();
-  }, []);
+  }, [setAccount]);
+
+  const loading = !isLoaded;
+  const user = userProfile;
 
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
 
-          {/* Top Left Settings Button */}
+          {/* Top Action Bar */}
           <ThemedView style={styles.topActions}>
             <TouchableOpacity onPress={() => console.log("Settings pressed")}>
               <Ionicons name="settings-outline" size={28} color="gray" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={cycleTheme} style={styles.themeButton}>
+              <Ionicons name={THEME_ICON[preferences.colorScheme]} size={28} color="gray" />
             </TouchableOpacity>
           </ThemedView>
 
@@ -166,9 +191,15 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   topActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 20,
     marginBottom: 15,
+  },
+  themeButton: {
+    padding: 4,
   },
   titleContainer: {
     paddingHorizontal: 24,
