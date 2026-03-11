@@ -1,4 +1,4 @@
-# GymApp 💪 (Change name)
+# LiftUp 💪
 
 A cross-platform mobile app for tracking workouts, setting fitness goals, and sharing progress with friends. Built with Expo and Firebase.
 
