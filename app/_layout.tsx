@@ -10,6 +10,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppProvider } from "@/src/context/AppContext";
+import { WorkoutProvider } from "@/src/context/WorkoutContext";
 
 import {
 	requestNotificationPermissions,
@@ -32,6 +33,14 @@ function ThemedApp() {
 					name="modal"
 					options={{ presentation: "modal", title: "Modal" }}
 				/>
+				<Stack.Screen
+					name="active-workout"
+					options={{ headerShown: false, gestureEnabled: false }}
+				/>
+				<Stack.Screen
+					name="workout-complete"
+					options={{ headerShown: false, presentation: "modal" }}
+				/>
 			</Stack>
 			<StatusBar style="auto" />
 		</ThemeProvider>
@@ -49,7 +58,9 @@ export default function RootLayout() {
 
 	return (
 		<AppProvider>
-			<ThemedApp />
+			<WorkoutProvider>
+				<ThemedApp />
+			</WorkoutProvider>
 		</AppProvider>
 	);
 }
