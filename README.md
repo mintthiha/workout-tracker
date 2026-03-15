@@ -1,50 +1,83 @@
-# Welcome to your Expo app 👋
+# LiftUp 💪
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A cross-platform mobile app for tracking workouts, setting fitness goals, and sharing progress with friends. Built with Expo and Firebase.
 
-## Get started
+---
 
-1. Install dependencies
+## Tech Stack
+
+- **Frontend:** React Native (Expo)
+- **Routing:** Expo Router (file-based)
+- **Backend / Database:** Firebase Firestore
+- **Authentication:** Firebase Auth
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js
+- Expo CLI
+- A Firebase project with Firestore enabled
+
+### Installation
+
+1. Clone the repository
+
+   ```bash
+   git clone https://github.com/mintthiha/workout-tracker
+   cd workout-tracker
+   ```
+
+2. Install dependencies
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Add your Firebase config — create a `.env` file in the root with your Firebase credentials:
+
+   ```
+      EXPO_PUBLIC_FIREBASE_API_KEY=...
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID=...
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+      EXPO_PUBLIC_FIREBASE_APP_ID=...
+   ```
+
+4. Start the app
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+You can then open the app in different ways, I use the web (option s)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Schema & Architecture (TO DISCUSS)
 
-## Get a fresh project
+The app uses Firebase Firestore with the following collections. See [`/docs/diagrams`](/docs/diagrams) for the full schema diagram.
 
-When you're ready, run:
+| Collection  | Description                                      |
+|-------------|--------------------------------------------------|
+| `users`     | User profiles, followers/following               |
+| `exercises` | Global + user-created exercise library           |
+| `workouts`  | Logged workout sessions                          |
+| `plans`     | Reusable workout programs                        |
+| `goals`     | User fitness goals and progress                  |
+| `feed`      | Social feed items (shared workouts, achievements)|
 
-```bash
-npm run reset-project
+---
+
+## Project Structure
+
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+/app          → Screens and routing (file-based via Expo Router)
+/components   → Reusable UI components
+/services     → Firebase queries and data logic
+/docs
+  /diagrams   → Schema diagrams (.drawio + .png)
+```
