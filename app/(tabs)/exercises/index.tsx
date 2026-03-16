@@ -15,10 +15,7 @@ import { ExerciseCard } from '@/components/exercises/ExerciseCard';
 import { FilterChips } from '@/components/exercises/FilterChips';
 import { CreateExerciseModal } from '@/components/exercises/CreateExerciseModal';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import {
-  MUSCLE_GROUP_LABELS,
-  MUSCLE_GROUP_ORDER,
-} from '@/src/data/exerciseLibrary';
+import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '@/src/data/exerciseLibrary';
 import * as exerciseService from '@/src/services/exerciseService';
 import { Exercise, EquipmentType } from '@/src/types/workout';
 
@@ -72,13 +69,11 @@ export default function ExercisesScreen() {
 
   useFocusEffect(useCallback(() => { loadExercises(); }, []));
 
-  // Merge global + custom, mark custom ones
   const merged: (Exercise & { isCustom: boolean })[] = useMemo(() => [
     ...allExercises.map((e) => ({ ...e, isCustom: false })),
     ...customExercises.map((e) => ({ ...e, isCustom: true })),
   ], [allExercises, customExercises]);
 
-  // Apply filters
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return merged.filter((e) => {
@@ -89,7 +84,6 @@ export default function ExercisesScreen() {
     });
   }, [merged, search, selectedMuscles, selectedEquipment]);
 
-  // Group by muscle group for SectionList
   const sections: Section[] = useMemo(() => {
     const grouped: Record<string, Exercise[]> = {};
     for (const ex of filtered) {
@@ -98,11 +92,7 @@ export default function ExercisesScreen() {
     }
     return MUSCLE_GROUP_ORDER
       .filter((g) => grouped[g]?.length)
-      .map((g) => ({
-        title: MUSCLE_GROUP_LABELS[g],
-        key: g,
-        data: grouped[g],
-      }));
+      .map((g) => ({ title: MUSCLE_GROUP_LABELS[g], key: g, data: grouped[g] }));
   }, [filtered]);
 
   function toggleMuscle(key: string) {
@@ -126,21 +116,9 @@ export default function ExercisesScreen() {
     [customExercises]
   );
 
-  return (
-    <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Exercises
-        </ThemedText>
-        <Ionicons
-          name="add-circle-outline"
-          size={28}
-          color={accentColor}
-          onPress={() => setShowCreateModal(true)}
-        />
-      </View>
-
+  // ─── Scrollable header: search + filters ───────────────────────────────────
+  const ListHeader = (
+    <View>
       {/* Search */}
       <View style={[styles.searchBar, { backgroundColor: inputBg }]}>
         <Ionicons name="search" size={16} color={secondaryText} />
@@ -155,7 +133,7 @@ export default function ExercisesScreen() {
         />
       </View>
 
-      {/* Muscle Group filters */}
+      {/* Muscle Group filter */}
       <ThemedText style={[styles.filterLabel, { color: secondaryText }]}>
         Muscle Group
       </ThemedText>
@@ -166,7 +144,7 @@ export default function ExercisesScreen() {
         onClearAll={() => setSelectedMuscles(new Set())}
       />
 
-      {/* Equipment filters */}
+      {/* Equipment filter */}
       <ThemedText style={[styles.filterLabel, { color: secondaryText }]}>
         Equipment
       </ThemedText>
@@ -177,52 +155,70 @@ export default function ExercisesScreen() {
         onClearAll={() => setSelectedEquipment(new Set())}
       />
 
-      {/* List */}
-      {loading ? (
-        <ActivityIndicator style={styles.loader} color={accentColor} />
-      ) : sections.length === 0 ? (
+      {loading && <ActivityIndicator style={styles.loader} color={accentColor} />}
+
+      {!loading && sections.length === 0 && (
         <View style={styles.emptyState}>
           <Ionicons name="search-outline" size={48} color={tertiaryText} />
           <ThemedText style={[styles.emptyText, { color: secondaryText }]}>
             No exercises found
           </ThemedText>
         </View>
-      ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          stickySectionHeadersEnabled={false}
-          renderSectionHeader={({ section }) => (
-            <View style={styles.sectionHeader}>
-              <ThemedText style={[styles.sectionHeaderText, { color: secondaryText }]}>
-                {section.title.toUpperCase()}
-              </ThemedText>
-            </View>
-          )}
-          renderItem={({ item, index, section }) => {
-            const isLast = index === section.data.length - 1;
-            return (
-              <View
-                style={[
-                  styles.cardWrapper,
-                  { backgroundColor: cardBg, borderColor: cardBorder },
-                  index === 0 && styles.cardFirst,
-                  isLast && styles.cardLast,
-                ]}
-              >
-                <ExerciseCard
-                  exercise={item}
-                  isCustom={customSet.has(item.id)}
-                  onPress={() => router.push(`/exercises/${item.id}`)}
-                />
-              </View>
-            );
-          }}
-          renderSectionFooter={() => <View style={styles.sectionGap} />}
-        />
       )}
+    </View>
+  );
+
+  return (
+    <ThemedView style={styles.container}>
+      {/* Fixed header — only the title + add button stay pinned */}
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Exercises
+        </ThemedText>
+        <Ionicons
+          name="add-circle-outline"
+          size={28}
+          color={accentColor}
+          onPress={() => setShowCreateModal(true)}
+        />
+      </View>
+
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        stickySectionHeadersEnabled={false}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={ListHeader}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <ThemedText style={[styles.sectionHeaderText, { color: secondaryText }]}>
+              {section.title.toUpperCase()}
+            </ThemedText>
+          </View>
+        )}
+        renderItem={({ item, index, section }) => {
+          const isLast = index === section.data.length - 1;
+          return (
+            <View
+              style={[
+                styles.cardWrapper,
+                { backgroundColor: cardBg, borderColor: cardBorder },
+                index === 0 && styles.cardFirst,
+                isLast && styles.cardLast,
+              ]}
+            >
+              <ExerciseCard
+                exercise={item}
+                isCustom={customSet.has(item.id)}
+                onPress={() => router.push(`/exercises/${item.id}`)}
+              />
+            </View>
+          );
+        }}
+        renderSectionFooter={() => <View style={styles.sectionGap} />}
+      />
 
       <CreateExerciseModal
         visible={showCreateModal}
@@ -243,16 +239,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingHorizontal: 20,
-    marginBottom: 14,
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 34,
     fontWeight: '800',
   },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -267,12 +266,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.4,
-    marginLeft: 16,
+    marginLeft: 0,
     marginTop: 10,
     marginBottom: -4,
-  },
-  list: {
-    flex: 1,
   },
   loader: {
     marginTop: 60,
@@ -284,10 +280,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
   },
   sectionHeader: {
     paddingTop: 14,
