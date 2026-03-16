@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { ExerciseImage } from '@/components/exercises/ExerciseImage';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { MUSCLE_GROUP_LABELS } from '@/src/data/exerciseLibrary';
 import { Exercise } from '@/src/types/workout';
 
 const EQUIPMENT_LABELS: Record<string, string> = {
@@ -32,15 +34,26 @@ export function ExerciseCard({ exercise, isCustom = false, onPress }: Props) {
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {/* Thumbnail / placeholder */}
+      <ExerciseImage
+        imageUrl={exercise.imageUrl}
+        muscleGroup={exercise.muscleGroup}
+        size={48}
+        borderRadius={8}
+      />
+
+      {/* Name + muscle group */}
       <View style={styles.info}>
         <ThemedText style={styles.name} numberOfLines={1}>
           {exercise.name}
-          {isCustom && (
-            <ThemedText style={[styles.customTag, { color: accentColor }]}>  Custom</ThemedText>
-          )}
+        </ThemedText>
+        <ThemedText style={[styles.muscleLabel, { color: secondaryText }]}>
+          {MUSCLE_GROUP_LABELS[exercise.muscleGroup] ?? exercise.muscleGroup}
+          {isCustom ? '  ·  Custom' : ''}
         </ThemedText>
       </View>
 
+      {/* Equipment chip */}
       <View style={[styles.chip, { backgroundColor: chipBg }]}>
         <ThemedText style={[styles.chipText, { color: accentColor }]}>
           {EQUIPMENT_LABELS[exercise.equipment] ?? exercise.equipment}
@@ -56,26 +69,26 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   info: {
     flex: 1,
-    marginRight: 10,
+    gap: 2,
   },
   name: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '500',
   },
-  customTag: {
+  muscleLabel: {
     fontSize: 12,
-    fontWeight: '600',
   },
   chip: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
-    marginRight: 8,
   },
   chipText: {
     fontSize: 12,

@@ -20,7 +20,7 @@ import {
   MUSCLE_GROUP_ORDER,
 } from '@/src/data/exerciseLibrary';
 import * as exerciseService from '@/src/services/exerciseService';
-import { Exercise, EquipmentType, MuscleGroup } from '@/src/types/workout';
+import { Exercise, EquipmentType } from '@/src/types/workout';
 
 const MUSCLE_CHIPS = MUSCLE_GROUP_ORDER.map((g) => ({
   key: g,
@@ -191,6 +191,7 @@ export default function ExercisesScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
+          style={styles.list}
           contentContainerStyle={styles.listContent}
           stickySectionHeadersEnabled={false}
           renderSectionHeader={({ section }) => (
@@ -269,6 +270,9 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     marginTop: 10,
     marginBottom: -4,
+  },
+  list: {
+    flex: 1,
   },
   loader: {
     marginTop: 60,

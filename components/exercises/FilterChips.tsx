@@ -1,7 +1,7 @@
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { ThemedText } from "@/components/themed-text";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface Chip {
   key: string;
@@ -16,9 +16,18 @@ interface Props {
 }
 
 export function FilterChips({ chips, selected, onToggle, onClearAll }: Props) {
-  const accentColor = useThemeColor({ light: '#3498db', dark: '#3498db' }, 'accent');
-  const inactiveBg = useThemeColor({ light: '#f0f0f0', dark: '#2c2c2e' }, 'card');
-  const inactiveText = useThemeColor({ light: '#555', dark: '#aaa' }, 'secondaryText');
+  const accentColor = useThemeColor(
+    { light: "#3498db", dark: "#3498db" },
+    "accent",
+  );
+  const inactiveBg = useThemeColor(
+    { light: "#f0f0f0", dark: "#2c2c2e" },
+    "card",
+  );
+  const inactiveText = useThemeColor(
+    { light: "#555", dark: "#aaa" },
+    "secondaryText",
+  );
 
   const hasSelection = selected.size > 0;
 
@@ -26,6 +35,9 @@ export function FilterChips({ chips, selected, onToggle, onClearAll }: Props) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={{
+        flexGrow: 0,
+      }} /* <-- ADD THIS: Prevents the scroll view from expanding vertically */
       contentContainerStyle={styles.row}
     >
       {/* "All" clears filter */}
@@ -39,7 +51,7 @@ export function FilterChips({ chips, selected, onToggle, onClearAll }: Props) {
         <ThemedText
           style={[
             styles.chipText,
-            { color: !hasSelection ? '#fff' : inactiveText },
+            { color: !hasSelection ? "#fff" : inactiveText },
           ]}
         >
           All
@@ -58,7 +70,10 @@ export function FilterChips({ chips, selected, onToggle, onClearAll }: Props) {
             onPress={() => onToggle(chip.key)}
           >
             <ThemedText
-              style={[styles.chipText, { color: active ? '#fff' : inactiveText }]}
+              style={[
+                styles.chipText,
+                { color: active ? "#fff" : inactiveText },
+              ]}
             >
               {chip.label}
             </ThemedText>
@@ -71,7 +86,9 @@ export function FilterChips({ chips, selected, onToggle, onClearAll }: Props) {
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
+    alignItems:
+      "center" /* <-- ADD THIS: Stops the chips from stretching to fill vertical space */,
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 8,
@@ -83,6 +100,6 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

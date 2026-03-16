@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ExerciseHistoryRow } from '@/components/exercises/ExerciseHistoryRow';
+import { ExerciseImage } from '@/components/exercises/ExerciseImage';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { EXERCISE_LIBRARY, MUSCLE_GROUP_LABELS } from '@/src/data/exerciseLibrary';
 import * as exerciseService from '@/src/services/exerciseService';
@@ -19,6 +20,8 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { width } = useWindowDimensions();
+  const heroSize = width - 32; // 16px padding each side
 
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
@@ -116,6 +119,15 @@ export default function ExerciseDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Hero image / placeholder */}
+        <ExerciseImage
+          imageUrl={exercise.imageUrl}
+          muscleGroup={exercise.muscleGroup}
+          size={heroSize}
+          height={220}
+          borderRadius={16}
+        />
+
         {/* Title */}
         <ThemedText type="title" style={styles.exerciseName}>
           {exercise.name}
@@ -226,12 +238,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 40,
+    alignItems: 'stretch',
   },
   exerciseName: {
     fontSize: 32,
     fontWeight: '800',
     marginBottom: 12,
-    marginTop: 4,
+    marginTop: 16,
   },
   metaRow: {
     flexDirection: 'row',
