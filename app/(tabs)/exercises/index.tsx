@@ -137,23 +137,27 @@ export default function ExercisesScreen() {
       <ThemedText style={[styles.filterLabel, { color: secondaryText }]}>
         Muscle Group
       </ThemedText>
-      <FilterChips
-        chips={MUSCLE_CHIPS}
-        selected={selectedMuscles}
-        onToggle={toggleMuscle}
-        onClearAll={() => setSelectedMuscles(new Set())}
-      />
+      <View style={styles.chipsEscape}>
+        <FilterChips
+          chips={MUSCLE_CHIPS}
+          selected={selectedMuscles}
+          onToggle={toggleMuscle}
+          onClearAll={() => setSelectedMuscles(new Set())}
+        />
+      </View>
 
       {/* Equipment filter */}
       <ThemedText style={[styles.filterLabel, { color: secondaryText }]}>
         Equipment
       </ThemedText>
-      <FilterChips
-        chips={EQUIPMENT_CHIPS}
-        selected={selectedEquipment}
-        onToggle={toggleEquipment}
-        onClearAll={() => setSelectedEquipment(new Set())}
-      />
+      <View style={styles.chipsEscape}>
+        <FilterChips
+          chips={EQUIPMENT_CHIPS}
+          selected={selectedEquipment}
+          onToggle={toggleEquipment}
+          onClearAll={() => setSelectedEquipment(new Set())}
+        />
+      </View>
 
       {loading && <ActivityIndicator style={styles.loader} color={accentColor} />}
 
@@ -309,5 +313,8 @@ const styles = StyleSheet.create({
   },
   sectionGap: {
     height: 4,
+  },
+  chipsEscape: {
+    marginHorizontal: -16,
   },
 });
