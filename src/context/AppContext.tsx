@@ -10,6 +10,7 @@ import {
   AppPreferences,
   CachedProfile,
   clearAccount,
+  clearPreferences,
   loadPreferences,
   loadUserProfile,
   loadUserId,
@@ -29,7 +30,7 @@ interface AppState {
 interface AppContextValue extends AppState {
   setAccount: (userId: string, profile: CachedProfile) => Promise<void>;
   updatePreferences: (partial: Partial<AppPreferences>) => Promise<void>;
-  clearAccount: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -76,8 +77,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const handleClearAccount = useCallback(async () => {
+  const handleSignOut = useCallback(async () => {
+    const { signOut: firebaseSignOut } = await import("../lib/authService");
+    await firebaseSignOut();
     await clearAccount();
+    await clearPreferences();
     setState((prev) => ({ ...prev, userId: null, userProfile: null }));
   }, []);
 
@@ -87,7 +91,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...state,
         setAccount,
         updatePreferences,
-        clearAccount: handleClearAccount,
+        signOut: handleSignOut,
       }}
     >
       {children}

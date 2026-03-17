@@ -1,11 +1,13 @@
 import { Image } from "expo-image";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
   View,
   ScrollView,
   ActivityIndicator,
+  TextInput,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,10 +18,8 @@ import { ThemedView } from "@/components/themed-view";
 import { useAppContext } from "@/src/context/AppContext";
 import { AppPreferences } from "@/src/lib/appStorage";
 import { getUserProfile } from "../../src/lib/userService";
-
-// TODO: Replace with real auth user ID once Firebase Auth is wired up, and
-// implementing the login page.
-const TEMP_USER_ID = "default_user";
+import { login } from "../../src/lib/authService";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 type ColorScheme = AppPreferences["colorScheme"];
 
@@ -42,25 +42,202 @@ const getLevelColor = (level: number) => {
 };
 
 export default function ProfileScreen() {
-  const { userProfile, isLoaded, setAccount, preferences, updatePreferences } = useAppContext();
+  const {
+    userId,
+    userProfile,
+    isLoaded,
+    setAccount,
+    preferences,
+    updatePreferences,
+    signOut,
+  } = useAppContext();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const textColor = useThemeColor({}, "text");
+  const cardColor = useThemeColor({}, "card");
+  const cardBorderColor = useThemeColor({}, "cardBorder");
+  const secondaryTextColor = useThemeColor({}, "secondaryText");
+
+  const isLoggedIn = !!userId && !!userProfile;
 
   function cycleTheme() {
     const next = THEME_CYCLE[(THEME_CYCLE.indexOf(preferences.colorScheme) + 1) % THEME_CYCLE.length];
     updatePreferences({ colorScheme: next });
   }
 
-  // Refresh from Firestore in the background; update cache if data changed.
+  // Refresh profile from Firestore when logged in.
   useEffect(() => {
+    if (!userId) return;
     (async () => {
-      const fresh = await getUserProfile(TEMP_USER_ID);
+      const fresh = await getUserProfile(userId);
       if (fresh) {
         const { password: _omit, ...profile } = fresh;
-        await setAccount(TEMP_USER_ID, profile);
+        await setAccount(userId, profile);
       }
     })();
-  }, [setAccount]);
+  }, [userId, setAccount]);
+
+  async function handleLogin() {
+    setLoginError(null);
+    if (!email.trim() || !password.trim()) {
+      setLoginError("Please enter both email and password.");
+      return;
+    }
+
+    setLoginLoading(true);
+    try {
+      const result = await login(email.trim(), password);
+      await setAccount(result.userId, result.profile);
+      setEmail("");
+      setPassword("");
+    } catch (err: any) {
+      const code = err?.code;
+      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+        setLoginError("Invalid email or password.");
+      } else if (code === "auth/invalid-email") {
+        setLoginError("Please enter a valid email address.");
+      } else if (code === "auth/too-many-requests") {
+        setLoginError("Too many attempts. Please try again later.");
+      } else {
+        setLoginError(err?.message ?? "Login failed. Please try again.");
+      }
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  function handleSignOut() {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch {
+            Alert.alert("Error", "Failed to sign out. Please try again.");
+          }
+        },
+      },
+    ]);
+  }
 
   const loading = !isLoaded;
+
+  if (loading) {
+    return (
+      <ThemedView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" />
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
+  // ── Not logged in: show login form ──
+  if (!isLoggedIn) {
+    return (
+      <ThemedView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            {/* Top Action Bar */}
+            <ThemedView style={styles.topActions}>
+              <View />
+              <TouchableOpacity onPress={cycleTheme} style={styles.themeButton}>
+                <Ionicons name={THEME_ICON[preferences.colorScheme]} size={28} color="gray" />
+              </TouchableOpacity>
+            </ThemedView>
+
+            {/* Title */}
+            <ThemedView style={styles.titleContainer}>
+              <ThemedText type="title" style={{ fontSize: 36 }}>Login</ThemedText>
+            </ThemedView>
+
+            {/* Login Form */}
+            <View style={styles.loginContainer}>
+              <Ionicons
+                name="fitness-outline"
+                size={72}
+                color={secondaryTextColor}
+                style={{ alignSelf: "center", marginBottom: 24 }}
+              />
+
+              <ThemedText style={styles.loginSubtitle}>
+                Sign in to access your workout data
+              </ThemedText>
+
+              {loginError && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle" size={18} color="#d32f2f" />
+                  <ThemedText style={styles.errorText}>{loginError}</ThemedText>
+                </View>
+              )}
+
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: textColor,
+                    backgroundColor: cardColor,
+                    borderColor: cardBorderColor,
+                  },
+                ]}
+                placeholder="Email"
+                placeholderTextColor={secondaryTextColor}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
+                editable={!loginLoading}
+              />
+
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: textColor,
+                    backgroundColor: cardColor,
+                    borderColor: cardBorderColor,
+                  },
+                ]}
+                placeholder="Password"
+                placeholderTextColor={secondaryTextColor}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                textContentType="password"
+                autoComplete="password"
+                editable={!loginLoading}
+                onSubmitEditing={handleLogin}
+              />
+
+              <TouchableOpacity
+                style={[styles.loginButton, loginLoading && styles.loginButtonDisabled]}
+                onPress={handleLogin}
+                disabled={loginLoading}
+                activeOpacity={0.7}
+              >
+                {loginLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <ThemedText style={styles.loginButtonText}>Sign In</ThemedText>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
+  // ── Logged in: show profile ──
   const user = userProfile;
 
   return (
@@ -83,92 +260,90 @@ export default function ProfileScreen() {
             <ThemedText type="title" style={{ fontSize: 36 }}>Profile</ThemedText>
           </ThemedView>
 
-          {loading ? (
-            <ActivityIndicator style={{ marginTop: 40 }} size="large" />
-          ) : !user ? (
-            /* ── No User Warning ── */
-            <ThemedView style={styles.noUserContainer}>
-              <Ionicons name="person-circle-outline" size={56} color="gray" />
-              <ThemedText style={styles.noUserText}>No profile found.</ThemedText>
-              <ThemedText style={styles.noUserSubtext}>
-                Make sure a user document exists in Firestore under{" "}
-                <ThemedText style={styles.noUserCode}>users/default_user</ThemedText>.
+          {/* Profile Display */}
+          <ThemedView style={styles.profileSection}>
+            <Image
+              source={require("../../assets/images/deermic.webp")}
+              style={styles.profileImage}
+            />
+            <View style={styles.profileInfo}>
+              <ThemedText type="defaultSemiBold" style={styles.name}>
+                {user.firstName} {user.lastName}
               </ThemedText>
-            </ThemedView>
-          ) : (
-            /* ── Profile Display ── */
-            <>
-              <ThemedView style={styles.profileSection}>
-                <Image
-                  source={require("../../assets/images/deermic.webp")}
-                  style={styles.profileImage}
-                />
-                <View style={styles.profileInfo}>
-                  <ThemedText type="defaultSemiBold" style={styles.name}>
-                    {user.firstName} {user.lastName}
-                  </ThemedText>
-                  <ThemedText style={styles.username}>@{user.username}</ThemedText>
-                  <ThemedText style={styles.email}>{user.email}</ThemedText>
-                </View>
-              </ThemedView>
+              <ThemedText style={styles.username}>@{user.username}</ThemedText>
+              <ThemedText style={styles.email}>{user.email}</ThemedText>
+            </View>
+          </ThemedView>
 
-              <View style={styles.separator} />
+          <View style={styles.separator} />
 
-              {/* Activity Section */}
-              <ThemedView style={styles.dashboardContainer}>
-                <ThemedText style={styles.activityTitle}>Activity</ThemedText>
-                <ThemedText style={styles.contributionCount}>
-                  11 workout sessions completed in the past month
-                </ThemedText>
+          {/* Activity Section */}
+          <ThemedView style={styles.dashboardContainer}>
+            <ThemedText style={styles.activityTitle}>Activity</ThemedText>
+            <ThemedText style={styles.contributionCount}>
+              11 workout sessions completed in the past month
+            </ThemedText>
 
-                <ThemedView style={styles.heatmapCard}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.heatmapInternalContainer}>
-                      <View style={styles.monthsRow}>
-                        {["Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan"].map((month) => (
-                          <ThemedText key={month} style={styles.monthLabel}>{month}</ThemedText>
-                        ))}
-                      </View>
-
-                      <View style={styles.gridContainer}>
-                        <View style={styles.daysColumn}>
-                          <ThemedText style={styles.dayLabel}>Mon</ThemedText>
-                          <ThemedText style={styles.dayLabel}>Wed</ThemedText>
-                          <ThemedText style={styles.dayLabel}>Fri</ThemedText>
-                        </View>
-
-                        <View style={styles.grid}>
-                          {Array.from({ length: 53 }).map((_, colIndex) => (
-                            <View key={colIndex} style={styles.weekColumn}>
-                              {Array.from({ length: 7 }).map((_, rowIndex) => {
-                                const dayIndex = colIndex * 7 + rowIndex;
-                                const contribution = contributionData.find(d => d.day === dayIndex);
-                                const level = contribution ? contribution.level : 0;
-                                return (
-                                  <View
-                                    key={rowIndex}
-                                    style={[styles.square, { backgroundColor: getLevelColor(level) }]}
-                                  />
-                                );
-                              })}
-                            </View>
-                          ))}
-                        </View>
-                      </View>
-                    </View>
-                  </ScrollView>
-
-                  <View style={styles.legendContainer}>
-                    <ThemedText style={styles.legendText}>Less</ThemedText>
-                    {[0, 1, 2, 3, 4].map((lvl) => (
-                      <View key={lvl} style={[styles.square, { backgroundColor: getLevelColor(lvl) }]} />
+            <ThemedView style={styles.heatmapCard}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.heatmapInternalContainer}>
+                  <View style={styles.monthsRow}>
+                    {["Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan"].map((month) => (
+                      <ThemedText key={month} style={styles.monthLabel}>{month}</ThemedText>
                     ))}
-                    <ThemedText style={styles.legendText}>More</ThemedText>
                   </View>
-                </ThemedView>
-              </ThemedView>
-            </>
-          )}
+
+                  <View style={styles.gridContainer}>
+                    <View style={styles.daysColumn}>
+                      <ThemedText style={styles.dayLabel}>Mon</ThemedText>
+                      <ThemedText style={styles.dayLabel}>Wed</ThemedText>
+                      <ThemedText style={styles.dayLabel}>Fri</ThemedText>
+                    </View>
+
+                    <View style={styles.grid}>
+                      {Array.from({ length: 53 }).map((_, colIndex) => (
+                        <View key={colIndex} style={styles.weekColumn}>
+                          {Array.from({ length: 7 }).map((_, rowIndex) => {
+                            const dayIndex = colIndex * 7 + rowIndex;
+                            const contribution = contributionData.find(d => d.day === dayIndex);
+                            const level = contribution ? contribution.level : 0;
+                            return (
+                              <View
+                                key={rowIndex}
+                                style={[styles.square, { backgroundColor: getLevelColor(level) }]}
+                              />
+                            );
+                          })}
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View style={styles.legendContainer}>
+                <ThemedText style={styles.legendText}>Less</ThemedText>
+                {[0, 1, 2, 3, 4].map((lvl) => (
+                  <View key={lvl} style={[styles.square, { backgroundColor: getLevelColor(lvl) }]} />
+                ))}
+                <ThemedText style={styles.legendText}>More</ThemedText>
+              </View>
+            </ThemedView>
+          </ThemedView>
+
+          <View style={styles.separator} />
+
+          {/* Sign Out */}
+          <View style={styles.signOutContainer}>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="log-out-outline" size={22} color="#d32f2f" />
+              <ThemedText style={styles.signOutText}>Sign Out</ThemedText>
+            </TouchableOpacity>
+          </View>
 
         </ScrollView>
       </SafeAreaView>
@@ -205,26 +380,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 30,
   },
-  // ── No User Warning Section ──
-  noUserContainer: {
-    alignItems: "center",
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    gap: 12,
+  // ── Login Section ──
+  loginContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
-  noUserText: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  noUserSubtext: {
-    fontSize: 14,
+  loginSubtitle: {
+    fontSize: 16,
     color: "gray",
     textAlign: "center",
-    lineHeight: 20,
+    marginBottom: 32,
   },
-  noUserCode: {
-    fontFamily: "monospace",
-    color: "gray",
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  loginButton: {
+    backgroundColor: "#0a7ea4",
+    height: 50,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fdecea",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  errorText: {
+    color: "#d32f2f",
+    fontSize: 14,
+    flex: 1,
   },
   // ── Profile Section ──
   profileSection: {
@@ -333,5 +536,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "gray",
     marginHorizontal: 4,
+  },
+  // ── Sign Out ──
+  signOutContainer: {
+    paddingHorizontal: 24,
+  },
+  signOutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d32f2f",
+  },
+  signOutText: {
+    color: "#d32f2f",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
