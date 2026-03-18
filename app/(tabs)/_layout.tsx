@@ -18,6 +18,16 @@ export default function TabLayout() {
 			}}
 		>
 			<Tabs.Screen
+				name="login"
+				options={{
+					title: "Login",
+					tabBarIcon: ({ color }) => (
+						<IconSymbol size={28} name="person.badge.key.fill" color={color} />
+					),
+					href: null, // Hidden from tab bar — accessed via redirect
+				}}
+			/>
+			<Tabs.Screen
 				name="profile"
 				options={{
 					title: "Profile",
