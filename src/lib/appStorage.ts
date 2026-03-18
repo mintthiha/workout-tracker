@@ -4,12 +4,25 @@ import { UserProfile } from "./userService";
 // Password is excluded — never cache credentials locally.
 export type CachedProfile = Omit<UserProfile, "password">;
 
+export type WeightUnit = "lbs" | "kg";
+export type RestDuration = 30 | 60 | 90 | 120 | 180 | 300;
+
 export interface AppPreferences {
   colorScheme: "light" | "dark" | "system";
+  weightUnit: WeightUnit;
+  defaultRestDuration: RestDuration;
+  autoStartRestTimer: boolean;
+  timerSound: boolean;
+  vibration: boolean;
 }
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   colorScheme: "system",
+  weightUnit: "lbs",
+  defaultRestDuration: 90,
+  autoStartRestTimer: false,
+  timerSound: true,
+  vibration: true,
 };
 
 const KEYS = {

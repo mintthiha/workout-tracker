@@ -1,15 +1,16 @@
-import { ScrollView } from "react-native";
+import { ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { useAppContext } from "@/src/context/AppContext";
 import { LoginForm } from "@/components/login/LoginForm";
-import { ThemeToggle } from "@/components/login/ThemeToggle";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function LoginScreen() {
+  const router = useRouter();
   const { userId, userProfile, isLoaded } = useAppContext();
   const isLoggedIn = !!userId && !!userProfile;
 
@@ -33,7 +34,9 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.topActions}>
             <View />
-            <ThemeToggle />
+            <TouchableOpacity onPress={() => router.push("/settings")}>
+              <Ionicons name="settings-outline" size={28} color="gray" />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.titleContainer}>

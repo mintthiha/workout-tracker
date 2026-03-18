@@ -41,6 +41,10 @@ function ThemedApp() {
 					name="workout-complete"
 					options={{ headerShown: false, presentation: "modal" }}
 				/>
+				<Stack.Screen
+					name="settings"
+					options={{ headerShown: false, animation: "slide_from_right" }}
+				/>
 			</Stack>
 			<StatusBar style="auto" />
 		</ThemeProvider>

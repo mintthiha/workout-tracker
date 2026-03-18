@@ -1,19 +1,19 @@
 import { useEffect } from "react";
 import { StyleSheet, ScrollView, View, TouchableOpacity, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { useAppContext } from "@/src/context/AppContext";
 import { getUserProfile } from "@/src/lib/userService";
-import { ThemeToggle } from "@/components/login/ThemeToggle";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ActivityHeatmap } from "@/components/profile/ActivityHeatmap";
 import { SignOutButton } from "@/components/profile/SignOutButton";
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { userId, userProfile, isLoaded, setAccount } = useAppContext();
   const isLoggedIn = !!userId && !!userProfile;
 
@@ -49,10 +49,9 @@ export default function ProfileScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Top Action Bar */}
           <View style={styles.topActions}>
-            <TouchableOpacity onPress={() => console.log("Settings pressed")}>
+            <TouchableOpacity onPress={() => router.push("/settings")}>
               <Ionicons name="settings-outline" size={28} color="gray" />
             </TouchableOpacity>
-            <ThemeToggle />
           </View>
 
           {/* Profile Title */}
