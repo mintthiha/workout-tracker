@@ -34,6 +34,7 @@ export default function ActiveWorkoutScreen() {
   }
 
   async function handleFinish() {
+    if (!session) return;
     const completedSets = session.exercises.reduce(
       (total, ex) => total + ex.sets.filter((s) => s.completed).length,
       0
