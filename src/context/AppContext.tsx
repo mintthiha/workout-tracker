@@ -35,7 +35,14 @@ interface AppContextValue extends AppState {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const DEFAULT_PREFERENCES: AppPreferences = { colorScheme: "system" };
+const DEFAULT_PREFERENCES: AppPreferences = {
+  colorScheme: "system",
+  weightUnit: "lbs",
+  defaultRestDuration: 90,
+  autoStartRestTimer: false,
+  timerSound: true,
+  vibration: true,
+};
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>({
