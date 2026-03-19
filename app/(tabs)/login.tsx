@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter } from "expo-router";
@@ -7,12 +8,14 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { useAppContext } from "@/src/context/AppContext";
 import { LoginForm } from "@/components/login/LoginForm";
+import { RegisterForm } from "@/components/login/RegisterForm";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { userId, userProfile, isLoaded } = useAppContext();
   const isLoggedIn = !!userId && !!userProfile;
+  const [mode, setMode] = useState<"login" | "register">("login");
 
   if (!isLoaded) {
     return (
@@ -40,10 +43,16 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.titleContainer}>
-            <ThemedText type="title" style={{ fontSize: 36 }}>Login</ThemedText>
+            <ThemedText type="title" style={{ fontSize: 36 }}>
+              {mode === "login" ? "Login" : "Create Account"}
+            </ThemedText>
           </View>
 
-          <LoginForm />
+          {mode === "login" ? (
+            <LoginForm onSwitchToRegister={() => setMode("register")} />
+          ) : (
+            <RegisterForm onSwitchToLogin={() => setMode("login")} />
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>

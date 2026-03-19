@@ -14,9 +14,13 @@ import { login } from "@/src/lib/authService";
 import { useAppContext } from "@/src/context/AppContext";
 import { ErrorBanner } from "./ErrorBanner";
 
-export function LoginForm() {
+interface LoginFormProps {
+  onSwitchToRegister: () => void;
+}
+
+export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const { setAccount } = useAppContext();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,16 +32,16 @@ export function LoginForm() {
 
   async function handleLogin() {
     setError(null);
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter both email and password.");
+    if (!identifier.trim() || !password.trim()) {
+      setError("Please enter your email or username and password.");
       return;
     }
 
     setLoading(true);
     try {
-      const result = await login(email.trim(), password);
+      const result = await login(identifier.trim(), password);
       await setAccount(result.userId, result.profile);
-      setEmail("");
+      setIdentifier("");
       setPassword("");
     } catch (err: any) {
       const code = err?.code;
@@ -46,7 +50,7 @@ export function LoginForm() {
         code === "auth/wrong-password" ||
         code === "auth/user-not-found"
       ) {
-        setError("Invalid email or password.");
+        setError("Invalid email/username or password.");
       } else if (code === "auth/invalid-email") {
         setError("Please enter a valid email address.");
       } else if (code === "auth/too-many-requests") {
@@ -83,14 +87,14 @@ export function LoginForm() {
             borderColor: cardBorderColor,
           },
         ]}
-        placeholder="Email"
+        placeholder="Email or username"
         placeholderTextColor={secondaryTextColor}
-        value={email}
-        onChangeText={setEmail}
+        value={identifier}
+        onChangeText={setIdentifier}
         autoCapitalize="none"
         keyboardType="email-address"
-        textContentType="emailAddress"
-        autoComplete="email"
+        textContentType="username"
+        autoComplete="username"
         editable={!loading}
       />
 
@@ -125,6 +129,17 @@ export function LoginForm() {
         ) : (
           <ThemedText style={styles.buttonText}>Sign In</ThemedText>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.switchLink}
+        onPress={onSwitchToRegister}
+        disabled={loading}
+      >
+        <ThemedText style={[styles.switchText, { color: secondaryTextColor }]}>
+          Don't have an account?{" "}
+        </ThemedText>
+        <ThemedText style={styles.switchAction}>Create Account</ThemedText>
       </TouchableOpacity>
     </View>
   );
@@ -163,6 +178,19 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 17,
+    fontWeight: "600",
+  },
+  switchLink: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  switchText: {
+    fontSize: 15,
+  },
+  switchAction: {
+    fontSize: 15,
+    color: "#0a7ea4",
     fontWeight: "600",
   },
 });
