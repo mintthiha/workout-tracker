@@ -1,7 +1,10 @@
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "./firebase";
+import {
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
+import { auth } from "./firebase";
+import { getUserProfile } from "./userService";
 import { CachedProfile } from "./appStorage";
-import { UserProfile } from "./userService";
 
 export interface LoginResult {
   userId: string;
@@ -12,25 +15,17 @@ export async function login(
   email: string,
   password: string
 ): Promise<LoginResult> {
-  const usersRef = collection(db, "users");
-  const q = query(usersRef, where("email", "==", email));
-  const snapshot = await getDocs(q);
+  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const uid = credential.user.uid;
 
-  if (snapshot.empty) {
+  const profile = await getUserProfile(uid);
+  if (!profile) {
     throw { code: "auth/user-not-found" };
   }
 
-  const userDoc = snapshot.docs[0];
-  const data = userDoc.data() as UserProfile;
-
-  if (data.password !== password) {
-    throw { code: "auth/wrong-password" };
-  }
-
-  const { password: _omit, ...profile } = data;
-  return { userId: userDoc.id, profile };
+  return { userId: uid, profile };
 }
 
 export async function signOut(): Promise<void> {
-  // No Firebase Auth session to clear — auth is Firestore-based.
+  await firebaseSignOut(auth);
 }

@@ -85,8 +85,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const handleSignOut = useCallback(async () => {
-    const { signOut: firebaseSignOut } = await import("../lib/authService");
-    await firebaseSignOut();
+    const { signOut: authSignOut } = await import("../lib/authService");
+    await authSignOut();
     await clearAccount();
     await clearPreferences();
     setState((prev) => ({ ...prev, userId: null, userProfile: null }));

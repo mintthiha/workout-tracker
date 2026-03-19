@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile } from "./userService";
 
-// Password is excluded — never cache credentials locally.
-export type CachedProfile = Omit<UserProfile, "password">;
+// Credentials are handled by Firebase Auth — profile data is safe to cache.
+export type CachedProfile = UserProfile;
 
 export type WeightUnit = "lbs" | "kg";
 export type RestDuration = 30 | 60 | 90 | 120 | 180 | 300;
