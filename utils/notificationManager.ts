@@ -45,9 +45,7 @@ export async function setupNotificationChannels(): Promise<void> {
 	});
 }
 
-export async function scheduleBeepNotifications(
-	config: TimerConfig,
-): Promise<void> {
+export async function scheduleBeepNotifications(config: TimerConfig): Promise<void> {
 	const { startTime, segments } = config;
 	const now = Date.now();
 

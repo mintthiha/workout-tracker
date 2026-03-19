@@ -18,10 +18,7 @@ export interface LoginResult {
 	profile: CachedProfile;
 }
 
-export async function login(
-	identifier: string,
-	password: string,
-): Promise<LoginResult> {
+export async function login(identifier: string, password: string): Promise<LoginResult> {
 	let email: string;
 
 	if (identifier.includes("@")) {
@@ -60,11 +57,7 @@ export async function register(data: RegisterData): Promise<LoginResult> {
 		throw { code: "auth/username-taken" };
 	}
 
-	const credential = await createUserWithEmailAndPassword(
-		auth,
-		data.email,
-		data.password,
-	);
+	const credential = await createUserWithEmailAndPassword(auth, data.email, data.password);
 	const uid = credential.user.uid;
 
 	const profile: UserProfile = {
