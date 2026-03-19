@@ -51,3 +51,9 @@ export async function loadPreferences(): Promise<AppPreferences> {
   const raw = await AsyncStorage.getItem(KEYS.PREFERENCES);
   return raw ? { ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as Partial<AppPreferences>) } : DEFAULT_PREFERENCES;
 }
+
+// Empty clear — theme/preferences are global (not per-user), so nothing to wipe.
+export async function clearPreferences(): Promise<void> {
+  // No user-specific preferences to clear at this time.
+  // Application-level preferences like color scheme are kept as-is.
+}
