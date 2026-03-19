@@ -46,3 +46,6 @@ app-example
 .claude
 
 ai-instructions/**
+
+# Firebase admin service account (never commit)
+scripts/serviceAccountKey.json

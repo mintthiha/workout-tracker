@@ -26,6 +26,7 @@ export interface Exercise {
   muscleGroup: MuscleGroup;
   equipment: EquipmentType;
   instructions?: string;
+  imageUrl?: string; // Firebase Storage URL — populated later; placeholder shown when absent
 }
 
 // ─── Templates ────────────────────────────────────────────────────────────────
