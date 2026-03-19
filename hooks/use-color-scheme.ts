@@ -1,5 +1,5 @@
-import { useColorScheme as useSystemColorScheme } from "react-native";
 import { useAppContext } from "@/src/context/AppContext";
+import { useColorScheme as useSystemColorScheme } from "react-native";
 
 /**
  * Returns the resolved color scheme ("light" or "dark").
@@ -7,9 +7,9 @@ import { useAppContext } from "@/src/context/AppContext";
  * system setting when the preference is "system".
  */
 export function useColorScheme(): "light" | "dark" {
-  const { preferences } = useAppContext();
-  const system = useSystemColorScheme() ?? "light";
+	const { preferences } = useAppContext();
+	const system = useSystemColorScheme() ?? "light";
 
-  if (preferences.colorScheme === "system") return system;
-  return preferences.colorScheme;
+	if (preferences.colorScheme === "system") return system;
+	return preferences.colorScheme;
 }

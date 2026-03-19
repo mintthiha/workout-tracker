@@ -1,20 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-	AppState,
-	AppStateStatus,
-	StyleSheet,
-	TouchableOpacity,
-	View,
-} from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import {
-	initAudio,
-	playBeep,
-	playStart,
-	unloadAudio,
-} from "../../utils/audioManager";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from "react-native";
+import { initAudio, playBeep, playStart, unloadAudio } from "../../utils/audioManager";
 import {
 	cancelBeepNotifications,
 	hideOngoingNotification,
@@ -30,10 +19,7 @@ import {
 	resolveSegmentState,
 	totalDuration,
 } from "../../utils/timer/timerConstants";
-import {
-	clearTimerState,
-	saveTimerState,
-} from "../../utils/timer/timerStorage";
+import { clearTimerState, saveTimerState } from "../../utils/timer/timerStorage";
 
 const SEGMENTS = buildSegments();
 const TOTAL_DURATION = totalDuration(SEGMENTS);
@@ -42,9 +28,7 @@ const TOTAL_SEGMENTS = SEGMENTS.length;
 export default function TimerScreen() {
 	const [isRunning, setIsRunning] = useState(false);
 	const [segmentIndex, setSegmentIndex] = useState(0);
-	const [secondsRemaining, setSecondsRemaining] = useState(
-		SEGMENTS[0].duration,
-	);
+	const [secondsRemaining, setSecondsRemaining] = useState(SEGMENTS[0].duration);
 
 	const startTimeRef = useRef<number | null>(null);
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
