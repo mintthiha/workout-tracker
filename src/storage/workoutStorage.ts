@@ -1,9 +1,7 @@
 import { ActiveWorkoutSession, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// ─── Storage Keys ─────────────────────────────────────────────────────────────
-// To migrate to Firebase: replace function bodies with Firestore calls.
-// Function signatures stay identical — nothing else in the codebase changes.
+// ─── Internal helper ──────────────────────────────────────────────────────────
 
 const KEYS = {
 	TEMPLATES: "WORKOUT_TEMPLATES",
@@ -34,7 +32,8 @@ export async function saveWorkoutLogs(logs: WorkoutLog[]): Promise<void> {
 }
 
 // ─── Active Session ───────────────────────────────────────────────────────────
-// Persists the in-progress session so a crash/backgrounding doesn't lose data.
+// Stored as a single document at users/{uid}/meta/activeSession.
+// Survives app restarts and crashes.
 
 export async function loadActiveSession(): Promise<ActiveWorkoutSession | null> {
 	const raw = await AsyncStorage.getItem(KEYS.ACTIVE_SESSION);
