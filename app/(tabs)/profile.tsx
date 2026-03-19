@@ -23,8 +23,7 @@ export default function ProfileScreen() {
     (async () => {
       const fresh = await getUserProfile(userId);
       if (fresh) {
-        const { password: _omit, ...profile } = fresh;
-        await setAccount(userId, profile);
+        await setAccount(userId, fresh);
       }
     })();
   }, [userId, setAccount]);
