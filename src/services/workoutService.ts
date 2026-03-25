@@ -107,7 +107,9 @@ export async function getWorkoutLogs(userId: string): Promise<WorkoutLog[]> {
 
 export async function saveWorkoutLog(userId: string, log: WorkoutLog): Promise<void> {
 	const { id, ...data } = log;
-	await setDoc(doc(db, "users", userId, "workoutLogs", id), data);
+	// JSON round-trip strips undefined values that Firestore rejects
+	const clean = JSON.parse(JSON.stringify(data));
+	await setDoc(doc(db, "users", userId, "workoutLogs", id), clean);
 }
 
 export async function deleteWorkoutLog(userId: string, id: string): Promise<void> {

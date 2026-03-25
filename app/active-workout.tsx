@@ -1,7 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+	Alert,
+	Modal,
+	ScrollView,
+	StyleSheet,
+	TouchableOpacity,
+	View,
+} from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -16,11 +23,15 @@ export default function ActiveWorkoutScreen() {
 	const [restVisible, setRestVisible] = useState(false);
 	const [restSeconds, setRestSeconds] = useState(90);
 	const [finishing, setFinishing] = useState(false);
+	const [cancelModalVisible, setCancelModalVisible] = useState(false);
+	const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
 
 	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
 	const dangerColor = "#ff3b30";
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
+	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
+	const bgColor = useThemeColor({ light: "#fff", dark: "#151718" }, "background");
 
 	// Guard: if somehow we land here with no session, go back
 	if (!session) {
@@ -33,42 +44,40 @@ export default function ActiveWorkoutScreen() {
 		setRestVisible(true);
 	}
 
-	async function handleFinish() {
-		if (!session) return;
-		const completedSets = session.exercises.reduce(
-			(total, ex) => total + ex.sets.filter((s) => s.completed).length,
-			0,
+	async function doFinish() {
+		// Validate that at least one set has real data
+		const hasValidData = session.exercises.some((ex) =>
+			ex.sets.some((s) => s.actualReps > 0),
 		);
-
-		if (completedSets === 0) {
-			Alert.alert("No Sets Completed", "Complete at least one set before finishing.", [
-				{ text: "OK" },
-			]);
+		if (!hasValidData) {
+			Alert.alert(
+				"No Data Entered",
+				"Please enter reps for at least one set before finishing.",
+			);
 			return;
 		}
 
 		setFinishing(true);
-		await finishWorkout();
-		setFinishing(false);
-		router.replace("/workout-complete");
+		try {
+			await finishWorkout();
+			router.replace("/workout-complete");
+		} catch {
+			Alert.alert("Error", "Failed to save workout. Please try again.");
+		} finally {
+			setFinishing(false);
+		}
 	}
 
-	function handleDiscard() {
-		Alert.alert(
-			"Discard Workout",
-			"Are you sure you want to discard this workout? All progress will be lost.",
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Discard",
-					style: "destructive",
-					onPress: () => {
-						discardWorkout();
-						router.replace("/(tabs)/workout");
-					},
-				},
-			],
+	function handleFinishPress() {
+		const incompleteSets = session.exercises.reduce(
+			(total, ex) => total + ex.sets.filter((s) => !s.completed).length,
+			0,
 		);
+		if (incompleteSets > 0) {
+			setIncompleteModalVisible(true);
+		} else {
+			doFinish();
+		}
 	}
 
 	return (
@@ -82,7 +91,7 @@ export default function ActiveWorkoutScreen() {
 					<WorkoutTimer startedAt={session.startedAt} />
 				</View>
 				<TouchableOpacity
-					onPress={handleDiscard}
+					onPress={() => setCancelModalVisible(true)}
 					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 				>
 					<Ionicons name="close" size={24} color={secondaryText} />
@@ -114,7 +123,7 @@ export default function ActiveWorkoutScreen() {
 						{ backgroundColor: accentColor },
 						finishing && styles.finishBtnDisabled,
 					]}
-					onPress={handleFinish}
+					onPress={handleFinishPress}
 					disabled={finishing}
 				>
 					<ThemedText style={styles.finishBtnText}>
@@ -129,6 +138,85 @@ export default function ActiveWorkoutScreen() {
 				seconds={restSeconds}
 				onDismiss={() => setRestVisible(false)}
 			/>
+
+			{/* ── Cancel Workout Modal ───────────────────────────────────────── */}
+			<Modal visible={cancelModalVisible} transparent animationType="fade">
+				<View style={styles.backdrop}>
+					<TouchableOpacity
+						style={StyleSheet.absoluteFillObject}
+						activeOpacity={1}
+						onPress={() => setCancelModalVisible(false)}
+					/>
+					<View style={[styles.modalCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+						<View style={[styles.modalIconWrap, { backgroundColor: dangerColor + "18" }]}>
+							<Ionicons name="trash-outline" size={28} color={dangerColor} />
+						</View>
+						<ThemedText type="defaultSemiBold" style={styles.modalTitle}>
+							Cancel Workout?
+						</ThemedText>
+						<ThemedText style={[styles.modalBody, { color: secondaryText }]}>
+							All progress will be lost and this workout won't be saved.
+						</ThemedText>
+						<TouchableOpacity
+							style={[styles.modalPrimaryBtn, { backgroundColor: dangerColor }]}
+							onPress={() => {
+								setCancelModalVisible(false);
+								discardWorkout();
+								router.replace("/(tabs)/workout");
+							}}
+						>
+							<ThemedText style={styles.modalPrimaryBtnText}>Discard Workout</ThemedText>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={[styles.modalSecondaryBtn, { borderColor: cardBorder }]}
+							onPress={() => setCancelModalVisible(false)}
+						>
+							<ThemedText style={[styles.modalSecondaryBtnText, { color: accentColor }]}>
+								Keep Going
+							</ThemedText>
+						</TouchableOpacity>
+					</View>
+				</View>
+			</Modal>
+
+			{/* ── Finish with Incomplete Sets Modal ─────────────────────────── */}
+			<Modal visible={incompleteModalVisible} transparent animationType="fade">
+				<View style={styles.backdrop}>
+					<TouchableOpacity
+						style={StyleSheet.absoluteFillObject}
+						activeOpacity={1}
+						onPress={() => setIncompleteModalVisible(false)}
+					/>
+					<View style={[styles.modalCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+						<View style={[styles.modalIconWrap, { backgroundColor: accentColor + "18" }]}>
+							<Ionicons name="checkmark-circle-outline" size={28} color={accentColor} />
+						</View>
+						<ThemedText type="defaultSemiBold" style={styles.modalTitle}>
+							Finish Workout?
+						</ThemedText>
+						<ThemedText style={[styles.modalBody, { color: secondaryText }]}>
+							Some sets aren't marked complete. Sets with data will be saved automatically — empty sets will be skipped.
+						</ThemedText>
+						<TouchableOpacity
+							style={[styles.modalPrimaryBtn, { backgroundColor: accentColor }]}
+							onPress={() => {
+								setIncompleteModalVisible(false);
+								doFinish();
+							}}
+						>
+							<ThemedText style={styles.modalPrimaryBtnText}>Finish Workout</ThemedText>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={[styles.modalSecondaryBtn, { borderColor: cardBorder }]}
+							onPress={() => setIncompleteModalVisible(false)}
+						>
+							<ThemedText style={[styles.modalSecondaryBtnText, { color: accentColor }]}>
+								Keep Going
+							</ThemedText>
+						</TouchableOpacity>
+					</View>
+				</View>
+			</Modal>
 		</ThemedView>
 	);
 }
@@ -180,5 +268,61 @@ const styles = StyleSheet.create({
 		color: "#fff",
 		fontSize: 18,
 		fontWeight: "700",
+	},
+	// ── Modal ────────────────────────────────────────────────────────────────
+	backdrop: {
+		flex: 1,
+		backgroundColor: "rgba(0,0,0,0.5)",
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 24,
+	},
+	modalCard: {
+		width: "100%",
+		borderRadius: 20,
+		padding: 24,
+		alignItems: "center",
+		gap: 8,
+		borderWidth: 1,
+	},
+	modalIconWrap: {
+		width: 56,
+		height: 56,
+		borderRadius: 28,
+		justifyContent: "center",
+		alignItems: "center",
+		marginBottom: 4,
+	},
+	modalTitle: {
+		fontSize: 18,
+		textAlign: "center",
+	},
+	modalBody: {
+		fontSize: 14,
+		textAlign: "center",
+		lineHeight: 20,
+		marginBottom: 8,
+	},
+	modalPrimaryBtn: {
+		width: "100%",
+		paddingVertical: 14,
+		borderRadius: 12,
+		alignItems: "center",
+	},
+	modalPrimaryBtnText: {
+		color: "#fff",
+		fontSize: 16,
+		fontWeight: "700",
+	},
+	modalSecondaryBtn: {
+		width: "100%",
+		paddingVertical: 14,
+		borderRadius: 12,
+		alignItems: "center",
+		borderWidth: 1,
+	},
+	modalSecondaryBtnText: {
+		fontSize: 16,
+		fontWeight: "600",
 	},
 });

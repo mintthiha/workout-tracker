@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { useAppContext } from "@/src/context/AppContext";
 import * as workoutService from "@/src/services/workoutService";
 import * as workoutStorage from "@/src/storage/workoutStorage";
-import { ActiveSet, ActiveWorkoutSession, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
+import { ActiveSet, ActiveWorkoutSession, LoggedExercise, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
@@ -109,24 +109,37 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 		const completedAt = Date.now();
 		const pastLogs = await workoutService.getWorkoutLogs(uid);
 
-		const loggedExercises = s.exercises.map((ex) => {
-			const rawSets = ex.sets.map((set) => ({ ...set, isPersonalRecord: false }));
-			const setsWithPR = workoutService.detectPersonalRecords(
-				ex.exerciseId,
-				rawSets,
-				pastLogs,
-			);
-			return {
-				exerciseId: ex.exerciseId,
-				exerciseName: ex.exerciseName,
-				sets: setsWithPR,
-				notes: ex.notes,
-			};
-		});
+		// Only keep sets with real data (actualReps > 0), auto-marking them complete.
+		// Skip exercises that end up with no valid sets.
+		const loggedExercises: LoggedExercise[] = s.exercises.reduce<LoggedExercise[]>(
+			(acc, ex) => {
+				const validSets = ex.sets
+					.filter((set) => set.actualReps > 0)
+					.map((set) => ({ ...set, completed: true, isPersonalRecord: false }));
+
+				if (validSets.length === 0) return acc;
+
+				const setsWithPR = workoutService.detectPersonalRecords(
+					ex.exerciseId,
+					validSets,
+					pastLogs,
+				);
+
+				const loggedEx: LoggedExercise = {
+					exerciseId: ex.exerciseId,
+					exerciseName: ex.exerciseName,
+					sets: setsWithPR,
+				};
+				// Avoid sending undefined to Firestore for optional fields
+				if (ex.notes) loggedEx.notes = ex.notes;
+
+				return [...acc, loggedEx];
+			},
+			[],
+		);
 
 		const log: WorkoutLog = {
 			id: workoutService.generateId(),
-			templateId: s.templateId,
 			templateName: s.templateName,
 			startedAt: s.startedAt,
 			completedAt,
@@ -138,6 +151,8 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 				0,
 			),
 		};
+		// Avoid sending undefined to Firestore for optional fields
+		if (s.templateId) log.templateId = s.templateId;
 
 		await workoutService.saveWorkoutLog(uid, log);
 		await workoutStorage.clearActiveSession();
