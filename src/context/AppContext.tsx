@@ -1,3 +1,4 @@
+import { onAuthStateChanged } from "firebase/auth";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import {
@@ -6,18 +7,18 @@ import {
 	clearAccount,
 	clearPreferences,
 	loadPreferences,
-	loadUserId,
 	loadUserProfile,
 	savePreferences,
-	saveUserId,
 	saveUserProfile,
 } from "../lib/appStorage";
+import { auth } from "../lib/firebase";
+import { getUserProfile } from "../lib/userService";
 
 interface AppState {
 	userId: string | null;
 	userProfile: CachedProfile | null;
 	preferences: AppPreferences;
-	/** True once AsyncStorage has been read on startup. */
+	/** True once Firebase auth state has been resolved on startup. */
 	isLoaded: boolean;
 }
 
@@ -46,22 +47,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 		isLoaded: false,
 	});
 
-	// Load all stored data once on startup.
+	// Load preferences from AsyncStorage once on startup.
 	useEffect(() => {
-		async function load() {
-			const [userId, userProfile, preferences] = await Promise.all([
-				loadUserId(),
-				loadUserProfile(),
-				loadPreferences(),
-			]);
-			setState({ userId, userProfile, preferences, isLoaded: true });
-		}
-		load();
+		loadPreferences().then((preferences) => {
+			setState((prev) => ({ ...prev, preferences }));
+		});
 	}, []);
 
-	const setAccount = useCallback(async (userId: string, profile: CachedProfile) => {
-		await Promise.all([saveUserId(userId), saveUserProfile(profile)]);
-		setState((prev) => ({ ...prev, userId, userProfile: profile }));
+	// Firebase auth state is the single source of truth for login state.
+	useEffect(() => {
+		const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+			if (firebaseUser) {
+				// Show cached profile immediately while fetching fresh data.
+				const cached = await loadUserProfile();
+				setState((prev) => ({
+					...prev,
+					userId: firebaseUser.uid,
+					userProfile: cached,
+					isLoaded: true,
+				}));
+
+				// Always sync fresh profile from Firestore.
+				const fresh = await getUserProfile(firebaseUser.uid);
+				if (fresh) {
+					await saveUserProfile(fresh);
+					setState((prev) => ({ ...prev, userProfile: fresh }));
+				}
+			} else {
+				setState((prev) => ({ ...prev, userId: null, userProfile: null, isLoaded: true }));
+			}
+		});
+		return unsubscribe;
+	}, []);
+
+	// Called after login/register to cache the profile locally.
+	const setAccount = useCallback(async (_userId: string, profile: CachedProfile) => {
+		await saveUserProfile(profile);
 	}, []);
 
 	const updatePreferences = useCallback(async (partial: Partial<AppPreferences>) => {
@@ -77,7 +98,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 		await authSignOut();
 		await clearAccount();
 		await clearPreferences();
-		setState((prev) => ({ ...prev, userId: null, userProfile: null }));
+		// onAuthStateChanged will update state to null automatically.
 	}, []);
 
 	return (

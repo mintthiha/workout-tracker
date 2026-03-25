@@ -1,9 +1,22 @@
 // ─── Workout Service ──────────────────────────────────────────────────────────
-// Business logic layer. Currently backed by AsyncStorage via workoutStorage.
-// To migrate to Firebase: replace workoutStorage calls with Firestore operations.
-// All function signatures remain identical — nothing else in the codebase changes.
+// Business logic layer. Backed by Firestore, scoped to the authenticated user.
+// Paths: users/{uid}/templates/{id}  and  users/{uid}/workoutLogs/{id}
 
-import * as workoutStorage from "@/src/storage/workoutStorage";
+import {
+	addDoc,
+	collection,
+	deleteDoc,
+	doc,
+	getDoc,
+	getDocs,
+	onSnapshot,
+	orderBy,
+	query,
+	setDoc,
+	updateDoc,
+} from "firebase/firestore";
+
+import { db } from "@/src/lib/firebase";
 import { LoggedExercise, LoggedSet, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
 
 // ─── ID Generation ────────────────────────────────────────────────────────────
@@ -14,61 +27,91 @@ export function generateId(): string {
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 
-export async function getTemplates(): Promise<WorkoutTemplate[]> {
-	return workoutStorage.loadTemplates();
+export async function getTemplates(userId: string): Promise<WorkoutTemplate[]> {
+	const snap = await getDocs(collection(db, "users", userId, "templates"));
+	return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorkoutTemplate));
 }
 
-export async function getTemplate(id: string): Promise<WorkoutTemplate | null> {
-	const templates = await workoutStorage.loadTemplates();
-	return templates.find((t) => t.id === id) ?? null;
+export async function getTemplate(
+	userId: string,
+	id: string,
+): Promise<WorkoutTemplate | null> {
+	const snap = await getDoc(doc(db, "users", userId, "templates", id));
+	if (!snap.exists()) return null;
+	return { id: snap.id, ...snap.data() } as WorkoutTemplate;
 }
 
 export async function createTemplate(
+	userId: string,
 	data: Omit<WorkoutTemplate, "id" | "createdAt" | "updatedAt">,
 ): Promise<WorkoutTemplate> {
-	const templates = await workoutStorage.loadTemplates();
 	const now = Date.now();
-	const template: WorkoutTemplate = {
-		...data,
-		id: generateId(),
-		createdAt: now,
-		updatedAt: now,
-	};
-	await workoutStorage.saveTemplates([...templates, template]);
-	return template;
+	const payload = { ...data, createdAt: now, updatedAt: now };
+	const ref = await addDoc(collection(db, "users", userId, "templates"), payload);
+	return { id: ref.id, ...payload };
 }
 
 export async function updateTemplate(
+	userId: string,
 	id: string,
 	data: Partial<Omit<WorkoutTemplate, "id" | "createdAt">>,
 ): Promise<void> {
-	const templates = await workoutStorage.loadTemplates();
-	const updated = templates.map((t) =>
-		t.id === id ? { ...t, ...data, updatedAt: Date.now() } : t,
-	);
-	await workoutStorage.saveTemplates(updated);
+	await updateDoc(doc(db, "users", userId, "templates", id), {
+		...data,
+		updatedAt: Date.now(),
+	});
 }
 
-export async function deleteTemplate(id: string): Promise<void> {
-	const templates = await workoutStorage.loadTemplates();
-	await workoutStorage.saveTemplates(templates.filter((t) => t.id !== id));
+export async function deleteTemplate(userId: string, id: string): Promise<void> {
+	await deleteDoc(doc(db, "users", userId, "templates", id));
+}
+
+// Real-time listener — fires immediately on any create/update/delete.
+// Returns an unsubscribe function; call it in useEffect cleanup.
+export function subscribeToTemplates(
+	userId: string,
+	onData: (templates: WorkoutTemplate[]) => void,
+	onError: (error: Error) => void,
+): () => void {
+	return onSnapshot(
+		collection(db, "users", userId, "templates"),
+		(snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorkoutTemplate))),
+		onError,
+	);
+}
+
+export function subscribeToTemplate(
+	userId: string,
+	id: string,
+	onData: (template: WorkoutTemplate | null) => void,
+	onError: (error: Error) => void,
+): () => void {
+	return onSnapshot(
+		doc(db, "users", userId, "templates", id),
+		(snap) => onData(snap.exists() ? ({ id: snap.id, ...snap.data() } as WorkoutTemplate) : null),
+		onError,
+	);
 }
 
 // ─── Workout Logs ─────────────────────────────────────────────────────────────
 
-export async function getWorkoutLogs(): Promise<WorkoutLog[]> {
-	const logs = await workoutStorage.loadWorkoutLogs();
-	return logs.sort((a, b) => b.completedAt - a.completedAt);
+export async function getWorkoutLogs(userId: string): Promise<WorkoutLog[]> {
+	const snap = await getDocs(
+		query(
+			collection(db, "users", userId, "workoutLogs"),
+			orderBy("completedAt", "desc"),
+		),
+	);
+	return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorkoutLog));
 }
 
-export async function saveWorkoutLog(log: WorkoutLog): Promise<void> {
-	const logs = await workoutStorage.loadWorkoutLogs();
-	await workoutStorage.saveWorkoutLogs([...logs, log]);
+export async function saveWorkoutLog(userId: string, log: WorkoutLog): Promise<void> {
+	const { id, ...data } = log;
+	await setDoc(doc(db, "users", userId, "workoutLogs", id), data);
 }
 
-export async function deleteWorkoutLog(id: string): Promise<void> {
-	const logs = await workoutStorage.loadWorkoutLogs();
-	await workoutStorage.saveWorkoutLogs(logs.filter((l) => l.id !== id));
+export async function deleteWorkoutLog(userId: string, id: string): Promise<void> {
+	await deleteDoc(doc(db, "users", userId, "workoutLogs", id));
 }
 
 // ─── Personal Records ─────────────────────────────────────────────────────────

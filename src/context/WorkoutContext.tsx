@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
+import { useAppContext } from "@/src/context/AppContext";
 import * as workoutService from "@/src/services/workoutService";
 import * as workoutStorage from "@/src/storage/workoutStorage";
 import { ActiveSet, ActiveWorkoutSession, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
@@ -33,14 +34,19 @@ const WorkoutContext = createContext<WorkoutContextValue | null>(null);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
+	const { userId } = useAppContext();
 	const [session, setSession] = useState<ActiveWorkoutSession | null>(null);
 	const [completedLog, setCompletedLog] = useState<WorkoutLog | null>(null);
 
-	// Ref keeps finishWorkout's closure from going stale.
+	// Refs keep finishWorkout's closure from going stale.
 	const sessionRef = useRef<ActiveWorkoutSession | null>(null);
+	const userIdRef = useRef<string | null>(null);
 	useEffect(() => {
 		sessionRef.current = session;
 	}, [session]);
+	useEffect(() => {
+		userIdRef.current = userId;
+	}, [userId]);
 
 	// Crash recovery: restore any persisted session on mount.
 	useEffect(() => {
@@ -97,9 +103,11 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 	const finishWorkout = useCallback(async (): Promise<WorkoutLog> => {
 		const s = sessionRef.current;
 		if (!s) throw new Error("No active workout session");
+		const uid = userIdRef.current;
+		if (!uid) throw new Error("Must be signed in to finish a workout");
 
 		const completedAt = Date.now();
-		const pastLogs = await workoutService.getWorkoutLogs();
+		const pastLogs = await workoutService.getWorkoutLogs(uid);
 
 		const loggedExercises = s.exercises.map((ex) => {
 			const rawSets = ex.sets.map((set) => ({ ...set, isPersonalRecord: false }));
@@ -131,7 +139,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 			),
 		};
 
-		await workoutService.saveWorkoutLog(log);
+		await workoutService.saveWorkoutLog(uid, log);
 		await workoutStorage.clearActiveSession();
 		setSession(null);
 		setCompletedLog(log);

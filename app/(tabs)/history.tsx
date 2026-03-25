@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { useAppContext } from "@/src/context/AppContext";
 import {
 	formatDate,
 	formatDuration,
@@ -34,6 +35,7 @@ function groupByMonth(logs: WorkoutLog[]): MonthGroup[] {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HistoryScreen() {
+	const { userId } = useAppContext();
 	const [groups, setGroups] = useState<MonthGroup[]>([]);
 	const [isEmpty, setIsEmpty] = useState(false);
 
@@ -47,16 +49,26 @@ export default function HistoryScreen() {
 	// Reload logs every time the History tab is focused
 	useFocusEffect(
 		useCallback(() => {
-			getWorkoutLogs().then((logs) => {
-				if (logs.length === 0) {
+			if (!userId) {
+				setIsEmpty(true);
+				setGroups([]);
+				return;
+			}
+			getWorkoutLogs(userId)
+				.then((logs) => {
+					if (logs.length === 0) {
+						setIsEmpty(true);
+						setGroups([]);
+					} else {
+						setIsEmpty(false);
+						setGroups(groupByMonth(logs));
+					}
+				})
+				.catch(() => {
 					setIsEmpty(true);
 					setGroups([]);
-				} else {
-					setIsEmpty(false);
-					setGroups(groupByMonth(logs));
-				}
-			});
-		}, []),
+				});
+		}, [userId]),
 	);
 
 	return (

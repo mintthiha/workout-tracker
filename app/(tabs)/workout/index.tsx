@@ -1,52 +1,75 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { TemplateCard } from "@/components/workout/TemplateCard";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { useAppContext } from "@/src/context/AppContext";
 import * as workoutService from "@/src/services/workoutService";
 import { WorkoutTemplate } from "@/src/types/workout";
 
 export default function WorkoutScreen() {
+	const { userId } = useAppContext();
 	const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+
 	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
 	const tertiaryText = useThemeColor({ light: "#999999", dark: "#666666" }, "tertiaryText");
 
-	useFocusEffect(
-		useCallback(() => {
-			workoutService.getTemplates().then(setTemplates);
-		}, []),
-	);
+	// Real-time listener — updates instantly on any create, edit, or delete.
+	useEffect(() => {
+		if (!userId) {
+			setTemplates([]);
+			return;
+		}
+		const unsubscribe = workoutService.subscribeToTemplates(
+			userId,
+			setTemplates,
+			() => {}, // silently ignore listener errors; stale data is acceptable
+		);
+		return unsubscribe;
+	}, [userId]);
 
-	function handleLongPress(template: WorkoutTemplate) {
-		Alert.alert(template.name, undefined, [
-			{
-				text: "Edit",
-				onPress: () => router.push(`/workout/create?id=${template.id}`),
-			},
-			{
-				text: "Delete",
-				style: "destructive",
-				onPress: () =>
-					Alert.alert("Delete Template", `Delete "${template.name}"?`, [
-						{ text: "Cancel", style: "cancel" },
-						{
-							text: "Delete",
-							style: "destructive",
-							onPress: async () => {
-								await workoutService.deleteTemplate(template.id);
-								setTemplates((prev) => prev.filter((t) => t.id !== template.id));
+	const handleLongPress = useCallback(
+		(template: WorkoutTemplate) => {
+			Alert.alert(template.name, undefined, [
+				{
+					text: "Edit",
+					onPress: () => router.push(`/workout/create?id=${template.id}`),
+				},
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: () =>
+						Alert.alert("Delete Template", `Delete "${template.name}"?`, [
+							{ text: "Cancel", style: "cancel" },
+							{
+								text: "Delete",
+								style: "destructive",
+								onPress: async () => {
+									if (!userId) return;
+									try {
+										await workoutService.deleteTemplate(userId, template.id);
+										// No manual setTemplates needed — the onSnapshot listener
+										// will update the list automatically.
+									} catch {
+										Alert.alert(
+											"Error",
+											"Failed to delete template. Please try again.",
+										);
+									}
+								},
 							},
-						},
-					]),
-			},
-			{ text: "Cancel", style: "cancel" },
-		]);
-	}
+						]),
+				},
+				{ text: "Cancel", style: "cancel" },
+			]);
+		},
+		[userId],
+	);
 
 	return (
 		<ThemedView style={styles.container}>
