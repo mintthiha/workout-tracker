@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "./firebase";
 
 export interface UserProfile {
@@ -6,6 +6,8 @@ export interface UserProfile {
 	lastName: string;
 	email: string;
 	username: string;
+	avatarUrl?: string;
+	avatarPublicId?: string;
 }
 
 export const createUserProfile = async (userId: string, data: UserProfile): Promise<void> => {
@@ -15,6 +17,16 @@ export const createUserProfile = async (userId: string, data: UserProfile): Prom
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
 	const snap = await getDoc(doc(db, "users", userId));
 	return snap.exists() ? (snap.data() as UserProfile) : null;
+};
+
+/**
+ * Partially updates a user's profile in Firestore.
+ */
+export const updateUserProfile = async (
+	userId: string,
+	data: Partial<UserProfile>,
+): Promise<void> => {
+	await updateDoc(doc(db, "users", userId), data);
 };
 
 /** Returns true if a Firestore profile already uses this username. */
