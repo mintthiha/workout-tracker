@@ -1,12 +1,14 @@
+import { BlurView } from "expo-blur";
 import { useEffect, useState } from "react";
-import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface Props {
 	visible: boolean;
-	seconds: number; // initial countdown value
+	seconds: number;
 	onDismiss: () => void;
 }
 
@@ -18,16 +20,16 @@ function formatCountdown(s: number): string {
 
 export function RestTimerModal({ visible, seconds, onDismiss }: Props) {
 	const [remaining, setRemaining] = useState(seconds);
+	const scheme = useColorScheme();
 
-	const bgColor = useThemeColor(
-		{ light: "rgba(0,0,0,0.6)", dark: "rgba(0,0,0,0.75)" },
-		"background",
-	);
-	const cardBg = useThemeColor({ light: "#fff", dark: "#1c1c1e" }, "card");
-	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
+	const glassCard = useThemeColor({}, "glassCard");
+	const glassBorder = useThemeColor({}, "glassBorder");
+	const primary = useThemeColor({}, "primary");
+	const success = useThemeColor({}, "success");
+	const successTint = useThemeColor({}, "successTint");
+	const accentTint = useThemeColor({}, "accentTint");
+	const secondaryText = useThemeColor({}, "secondaryText");
 
-	// Reset and start countdown whenever the modal becomes visible
 	useEffect(() => {
 		if (!visible) return;
 		setRemaining(seconds);
@@ -46,22 +48,53 @@ export function RestTimerModal({ visible, seconds, onDismiss }: Props) {
 		return () => clearInterval(id);
 	}, [visible, seconds]);
 
+	const isAlmostDone = remaining <= 5;
+	const timerColor = isAlmostDone ? success : primary;
+	const timerTint = isAlmostDone ? successTint : accentTint;
+
+	const cardContent = (
+		<>
+			<View style={styles.ringContainer}>
+				<View style={[styles.ringBg, { borderColor: timerColor + "22" }]} />
+				<View
+					style={[
+						styles.ringFg,
+						{ borderColor: timerColor, opacity: 0.35 + 0.65 * (remaining / seconds) },
+					]}
+				/>
+				<View style={styles.ringCenter}>
+					<ThemedText style={[styles.label, { color: secondaryText }]}>REST</ThemedText>
+					<ThemedText style={[styles.countdown, { color: timerColor }]}>
+						{formatCountdown(remaining)}
+					</ThemedText>
+				</View>
+			</View>
+
+			<TouchableOpacity
+				style={[styles.skipBtn, { backgroundColor: timerTint, borderColor: timerColor + "50" }]}
+				onPress={onDismiss}
+			>
+				<ThemedText style={[styles.skipBtnText, { color: timerColor }]}>Skip Rest</ThemedText>
+			</TouchableOpacity>
+		</>
+	);
+
 	return (
 		<Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-			<View style={[styles.overlay, { backgroundColor: bgColor }]}>
-				<View style={[styles.card, { backgroundColor: cardBg }]}>
-					<ThemedText style={[styles.label, { color: secondaryText }]}>Rest</ThemedText>
-					<ThemedText style={styles.countdown}>{formatCountdown(remaining)}</ThemedText>
-
-					<TouchableOpacity
-						style={[styles.skipBtn, { borderColor: accentColor }]}
-						onPress={onDismiss}
+			<View style={styles.overlay}>
+				{Platform.OS === "ios" ? (
+					<BlurView
+						intensity={70}
+						tint={scheme === "dark" ? "dark" : "light"}
+						style={[styles.card, { borderColor: glassBorder }]}
 					>
-						<ThemedText style={[styles.skipBtnText, { color: accentColor }]}>
-							Skip Rest
-						</ThemedText>
-					</TouchableOpacity>
-				</View>
+						{cardContent}
+					</BlurView>
+				) : (
+					<View style={[styles.card, { backgroundColor: glassCard, borderColor: glassBorder }]}>
+						{cardContent}
+					</View>
+				)}
 			</View>
 		</Modal>
 	);
@@ -72,40 +105,66 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
+		backgroundColor: "rgba(0,0,0,0.6)",
 	},
 	card: {
-		width: 220,
-		borderRadius: 20,
+		width: 260,
+		borderRadius: 28,
 		alignItems: "center",
-		paddingVertical: 32,
-		paddingHorizontal: 24,
-		gap: 12,
+		paddingVertical: 36,
+		paddingHorizontal: 28,
+		gap: 24,
+		borderWidth: 1,
+		overflow: "hidden",
 		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 12,
-		elevation: 8,
+		shadowOffset: { width: 0, height: 12 },
+		shadowOpacity: 0.4,
+		shadowRadius: 24,
+		elevation: 12,
+	},
+	ringContainer: {
+		width: 156,
+		height: 156,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	ringBg: {
+		position: "absolute",
+		width: 156,
+		height: 156,
+		borderRadius: 78,
+		borderWidth: 5,
+	},
+	ringFg: {
+		position: "absolute",
+		width: 156,
+		height: 156,
+		borderRadius: 78,
+		borderWidth: 5,
+	},
+	ringCenter: {
+		alignItems: "center",
+		gap: 4,
 	},
 	label: {
-		fontSize: 14,
-		fontWeight: "600",
-		textTransform: "uppercase",
-		letterSpacing: 1,
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 2,
 	},
 	countdown: {
-		fontSize: 52,
+		fontSize: 50,
 		fontWeight: "700",
 		fontVariant: ["tabular-nums"],
+		letterSpacing: -1,
 	},
 	skipBtn: {
-		marginTop: 8,
-		paddingHorizontal: 24,
-		paddingVertical: 10,
-		borderRadius: 10,
-		borderWidth: 1.5,
+		paddingHorizontal: 32,
+		paddingVertical: 12,
+		borderRadius: 14,
+		borderWidth: 1,
 	},
 	skipBtnText: {
 		fontSize: 15,
-		fontWeight: "600",
+		fontWeight: "700",
 	},
 });
