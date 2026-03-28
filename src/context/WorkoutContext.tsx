@@ -1,8 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
+import { useAppContext } from "@/src/context/AppContext";
 import * as workoutService from "@/src/services/workoutService";
 import * as workoutStorage from "@/src/storage/workoutStorage";
-import { ActiveSet, ActiveWorkoutSession, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
+import { ActiveSet, ActiveWorkoutSession, LoggedExercise, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
@@ -33,14 +34,19 @@ const WorkoutContext = createContext<WorkoutContextValue | null>(null);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
+	const { userId } = useAppContext();
 	const [session, setSession] = useState<ActiveWorkoutSession | null>(null);
 	const [completedLog, setCompletedLog] = useState<WorkoutLog | null>(null);
 
-	// Ref keeps finishWorkout's closure from going stale.
+	// Refs keep finishWorkout's closure from going stale.
 	const sessionRef = useRef<ActiveWorkoutSession | null>(null);
+	const userIdRef = useRef<string | null>(null);
 	useEffect(() => {
 		sessionRef.current = session;
 	}, [session]);
+	useEffect(() => {
+		userIdRef.current = userId;
+	}, [userId]);
 
 	// Crash recovery: restore any persisted session on mount.
 	useEffect(() => {
@@ -97,28 +103,43 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 	const finishWorkout = useCallback(async (): Promise<WorkoutLog> => {
 		const s = sessionRef.current;
 		if (!s) throw new Error("No active workout session");
+		const uid = userIdRef.current;
+		if (!uid) throw new Error("Must be signed in to finish a workout");
 
 		const completedAt = Date.now();
-		const pastLogs = await workoutService.getWorkoutLogs();
+		const pastLogs = await workoutService.getWorkoutLogs(uid);
 
-		const loggedExercises = s.exercises.map((ex) => {
-			const rawSets = ex.sets.map((set) => ({ ...set, isPersonalRecord: false }));
-			const setsWithPR = workoutService.detectPersonalRecords(
-				ex.exerciseId,
-				rawSets,
-				pastLogs,
-			);
-			return {
-				exerciseId: ex.exerciseId,
-				exerciseName: ex.exerciseName,
-				sets: setsWithPR,
-				notes: ex.notes,
-			};
-		});
+		// Only keep sets with real data (actualReps > 0), auto-marking them complete.
+		// Skip exercises that end up with no valid sets.
+		const loggedExercises: LoggedExercise[] = s.exercises.reduce<LoggedExercise[]>(
+			(acc, ex) => {
+				const validSets = ex.sets
+					.filter((set) => set.actualReps > 0)
+					.map((set) => ({ ...set, completed: true, isPersonalRecord: false }));
+
+				if (validSets.length === 0) return acc;
+
+				const setsWithPR = workoutService.detectPersonalRecords(
+					ex.exerciseId,
+					validSets,
+					pastLogs,
+				);
+
+				const loggedEx: LoggedExercise = {
+					exerciseId: ex.exerciseId,
+					exerciseName: ex.exerciseName,
+					sets: setsWithPR,
+				};
+				// Avoid sending undefined to Firestore for optional fields
+				if (ex.notes) loggedEx.notes = ex.notes;
+
+				return [...acc, loggedEx];
+			},
+			[],
+		);
 
 		const log: WorkoutLog = {
 			id: workoutService.generateId(),
-			templateId: s.templateId,
 			templateName: s.templateName,
 			startedAt: s.startedAt,
 			completedAt,
@@ -130,8 +151,10 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 				0,
 			),
 		};
+		// Avoid sending undefined to Firestore for optional fields
+		if (s.templateId) log.templateId = s.templateId;
 
-		await workoutService.saveWorkoutLog(log);
+		await workoutService.saveWorkoutLog(uid, log);
 		await workoutStorage.clearActiveSession();
 		setSession(null);
 		setCompletedLog(log);

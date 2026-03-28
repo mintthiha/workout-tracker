@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+	ActivityIndicator,
 	Alert,
 	FlatList,
 	Modal,
@@ -15,11 +16,9 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import {
-	EXERCISE_LIBRARY,
-	MUSCLE_GROUP_LABELS,
-	MUSCLE_GROUP_ORDER,
-} from "@/src/data/exerciseLibrary";
+import { useAppContext } from "@/src/context/AppContext";
+import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from "@/src/data/exerciseLibrary";
+import * as exerciseService from "@/src/services/exerciseService";
 import * as workoutService from "@/src/services/workoutService";
 import { Exercise, MuscleGroup, TemplateExercise } from "@/src/types/workout";
 
@@ -64,11 +63,16 @@ function fromTemplateExercise(te: TemplateExercise): ExerciseEntry {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CreateTemplateScreen() {
-	const { id } = useLocalSearchParams<{ id?: string }>();
+	const params = useLocalSearchParams<{ id?: string }>();
+	// useLocalSearchParams can return string | string[] at runtime
+	const id = Array.isArray(params.id) ? params.id[0] : params.id;
+	const { userId } = useAppContext();
 	const isEditing = Boolean(id);
 
 	const [templateName, setTemplateName] = useState("");
 	const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
+	const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
+	const [loadingExercises, setLoadingExercises] = useState(true);
 	const [showPicker, setShowPicker] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [saving, setSaving] = useState(false);
@@ -82,27 +86,35 @@ export default function CreateTemplateScreen() {
 	const textColor = useThemeColor({ light: "#11181C", dark: "#ECEDEE" }, "text");
 	const bgColor = useThemeColor({ light: "#fff", dark: "#151718" }, "background");
 
+	// Load exercises from Firestore on mount
+	useEffect(() => {
+		exerciseService
+			.getExercises()
+			.then(setAvailableExercises)
+			.finally(() => setLoadingExercises(false));
+	}, []);
+
 	// Load existing template when editing
 	useEffect(() => {
-		if (!id) return;
-		workoutService.getTemplate(id).then((template) => {
+		if (!id || !userId) return;
+		workoutService.getTemplate(userId, id).then((template) => {
 			if (!template) return;
 			setTemplateName(template.name);
 			setExercises(template.exercises.map(fromTemplateExercise));
 		});
-	}, [id]);
+	}, [id, userId]);
 
 	// Filtered exercise list for picker
 	const filteredExercises = useMemo(() => {
 		const q = searchQuery.toLowerCase().trim();
 		return q
-			? EXERCISE_LIBRARY.filter(
+			? availableExercises.filter(
 					(e) =>
 						e.name.toLowerCase().includes(q) ||
 						MUSCLE_GROUP_LABELS[e.muscleGroup]?.toLowerCase().includes(q),
 				)
-			: EXERCISE_LIBRARY;
-	}, [searchQuery]);
+			: availableExercises;
+	}, [searchQuery, availableExercises]);
 
 	// Grouped by muscle group for the picker
 	const groupedExercises = useMemo(() => {
@@ -118,39 +130,40 @@ export default function CreateTemplateScreen() {
 		return groups;
 	}, [filteredExercises]);
 
-	function addExercise(exercise: Exercise) {
-		const already = exercises.find((e) => e.exerciseId === exercise.id);
-		if (already) {
-			Alert.alert("Already Added", `${exercise.name} is already in this template.`);
-			return;
-		}
-		setExercises((prev) => [
-			...prev,
-			{
-				exerciseId: exercise.id,
-				exerciseName: exercise.name,
-				muscleGroup: exercise.muscleGroup,
-				setCount: 3,
-				defaultReps: 8,
-				defaultWeight: 0,
-				restSeconds: 90,
-			},
-		]);
+	const addExercise = useCallback((exercise: Exercise) => {
+		setExercises((prev) => {
+			if (prev.some((e) => e.exerciseId === exercise.id)) {
+				Alert.alert("Already Added", `${exercise.name} is already in this template.`);
+				return prev;
+			}
+			return [
+				...prev,
+				{
+					exerciseId: exercise.id,
+					exerciseName: exercise.name,
+					muscleGroup: exercise.muscleGroup,
+					setCount: 3,
+					defaultReps: 8,
+					defaultWeight: 0,
+					restSeconds: 90,
+				},
+			];
+		});
 		setShowPicker(false);
 		setSearchQuery("");
-	}
+	}, []);
 
-	function removeExercise(exerciseId: string) {
+	const removeExercise = useCallback((exerciseId: string) => {
 		setExercises((prev) => prev.filter((e) => e.exerciseId !== exerciseId));
-	}
+	}, []);
 
-	function updateEntry(exerciseId: string, patch: Partial<ExerciseEntry>) {
+	const updateEntry = useCallback((exerciseId: string, patch: Partial<ExerciseEntry>) => {
 		setExercises((prev) =>
 			prev.map((e) => (e.exerciseId === exerciseId ? { ...e, ...patch } : e)),
 		);
-	}
+	}, []);
 
-	async function handleSave() {
+	const handleSave = useCallback(async () => {
 		if (!templateName.trim()) {
 			Alert.alert("Name Required", "Please give your template a name.");
 			return;
@@ -159,21 +172,26 @@ export default function CreateTemplateScreen() {
 			Alert.alert("No Exercises", "Add at least one exercise to your template.");
 			return;
 		}
+		if (!userId) return;
 
 		setSaving(true);
-		const data = {
-			name: templateName.trim(),
-			exercises: exercises.map(toTemplateExercise),
-		};
-
-		if (isEditing && id) {
-			await workoutService.updateTemplate(id, data);
-		} else {
-			await workoutService.createTemplate(data);
+		try {
+			const data = {
+				name: templateName.trim(),
+				exercises: exercises.map(toTemplateExercise),
+			};
+			if (isEditing && id) {
+				await workoutService.updateTemplate(userId, id, data);
+			} else {
+				await workoutService.createTemplate(userId, data);
+			}
+			router.back();
+		} catch {
+			Alert.alert("Error", "Failed to save template. Please try again.");
+		} finally {
+			setSaving(false);
 		}
-		setSaving(false);
-		router.back();
-	}
+	}, [templateName, exercises, userId, isEditing, id]);
 
 	return (
 		<ThemedView style={styles.container}>
@@ -338,49 +356,58 @@ export default function CreateTemplateScreen() {
 						returnKeyType="search"
 					/>
 
-					<FlatList
-						data={groupedExercises}
-						keyExtractor={(item) => item.group}
-						renderItem={({ item }) => (
-							<View>
-								<ThemedText style={[styles.groupHeader, { color: secondaryText }]}>
-									{MUSCLE_GROUP_LABELS[item.group]}
-								</ThemedText>
-								{item.exercises.map((ex) => {
-									const alreadyAdded = exercises.some(
-										(e) => e.exerciseId === ex.id,
-									);
-									return (
-										<TouchableOpacity
-											key={ex.id}
-											style={[
-												styles.pickerItem,
-												{ borderBottomColor: cardBorder },
-											]}
-											onPress={() => addExercise(ex)}
-											disabled={alreadyAdded}
-										>
-											<ThemedText
+					{loadingExercises ? (
+						<View style={styles.pickerLoading}>
+							<ActivityIndicator color={accentColor} />
+						</View>
+					) : (
+						<FlatList
+							data={groupedExercises}
+							keyExtractor={(item) => item.group}
+							keyboardShouldPersistTaps="handled"
+							renderItem={({ item }) => (
+								<View>
+									<ThemedText
+										style={[styles.groupHeader, { color: secondaryText }]}
+									>
+										{MUSCLE_GROUP_LABELS[item.group]}
+									</ThemedText>
+									{item.exercises.map((ex) => {
+										const alreadyAdded = exercises.some(
+											(e) => e.exerciseId === ex.id,
+										);
+										return (
+											<TouchableOpacity
+												key={ex.id}
 												style={[
-													styles.pickerItemName,
-													alreadyAdded && { color: secondaryText },
+													styles.pickerItem,
+													{ borderBottomColor: cardBorder },
 												]}
+												onPress={() => addExercise(ex)}
+												disabled={alreadyAdded}
 											>
-												{ex.name}
-											</ThemedText>
-											{alreadyAdded && (
-												<Ionicons
-													name="checkmark"
-													size={16}
-													color={accentColor}
-												/>
-											)}
-										</TouchableOpacity>
-									);
-								})}
-							</View>
-						)}
-					/>
+												<ThemedText
+													style={[
+														styles.pickerItemName,
+														alreadyAdded && { color: secondaryText },
+													]}
+												>
+													{ex.name}
+												</ThemedText>
+												{alreadyAdded && (
+													<Ionicons
+														name="checkmark"
+														size={16}
+														color={accentColor}
+													/>
+												)}
+											</TouchableOpacity>
+										);
+									})}
+								</View>
+							)}
+						/>
+					)}
 				</View>
 			</Modal>
 		</ThemedView>
@@ -607,6 +634,11 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		borderWidth: 1,
 		fontSize: 15,
+	},
+	pickerLoading: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	groupHeader: {
 		fontSize: 12,

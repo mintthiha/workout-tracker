@@ -1,18 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ExerciseListItem } from "@/components/workout/ExerciseListItem";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { useAppContext } from "@/src/context/AppContext";
 import { useWorkout } from "@/src/context/WorkoutContext";
 import * as workoutService from "@/src/services/workoutService";
 import { WorkoutTemplate } from "@/src/types/workout";
 
 export default function TemplateDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
+	const { userId } = useAppContext();
 	const [template, setTemplate] = useState<WorkoutTemplate | null>(null);
 	const { startWorkout } = useWorkout();
 
@@ -21,24 +23,35 @@ export default function TemplateDetailScreen() {
 	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
 
+	// Real-time listener — reflects edits immediately without a re-fetch.
 	useEffect(() => {
-		if (!id) return;
-		workoutService.getTemplate(id).then((t) => {
-			if (!t) {
-				Alert.alert("Not Found", "This template no longer exists.", [
+		if (!id || !userId) return;
+		const unsubscribe = workoutService.subscribeToTemplate(
+			userId,
+			id,
+			(t) => {
+				if (!t) {
+					Alert.alert("Not Found", "This template no longer exists.", [
+						{ text: "OK", onPress: () => router.back() },
+					]);
+					return;
+				}
+				setTemplate(t);
+			},
+			() => {
+				Alert.alert("Error", "Failed to load template.", [
 					{ text: "OK", onPress: () => router.back() },
 				]);
-				return;
-			}
-			setTemplate(t);
-		});
-	}, [id]);
+			},
+		);
+		return unsubscribe;
+	}, [id, userId]);
 
-	function handleStartWorkout() {
+	const handleStartWorkout = useCallback(() => {
 		if (!template) return;
 		startWorkout(template);
 		router.push("/active-workout");
-	}
+	}, [template, startWorkout]);
 
 	if (!template) {
 		return (

@@ -1,7 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CategoryCard } from "@/components/settings/CategoryCard";
@@ -11,6 +12,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
 import type { AppPreferences, RestDuration, WeightUnit } from "@/src/lib/appStorage";
+import { signOut } from "@/src/lib/authService";
 
 type Category = "appearance" | "workouts" | "notifications";
 
@@ -98,6 +100,27 @@ export default function SettingsScreen() {
 }
 
 function CategoriesView({ onSelect }: { onSelect: (cat: Category) => void }) {
+	async function handleClearStorage() {
+		Alert.alert(
+			"Clear All Storage",
+			"This will wipe all local data and sign you out. Continue?",
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Clear",
+					style: "destructive",
+					onPress: async () => {
+						try {
+							await signOut();
+						} catch {}
+						await AsyncStorage.clear();
+						Alert.alert("Done", "Storage cleared. Restart the app.");
+					},
+				},
+			],
+		);
+	}
+
 	return (
 		<View>
 			<CategoryCard
@@ -118,6 +141,15 @@ function CategoriesView({ onSelect }: { onSelect: (cat: Category) => void }) {
 				subtitle="Sound and haptic feedback"
 				onPress={() => onSelect("notifications")}
 			/>
+			{__DEV__ && (
+				<View style={styles.devSection}>
+					<ThemedText style={styles.devLabel}>DEV TOOLS</ThemedText>
+					<TouchableOpacity style={styles.devButton} onPress={handleClearStorage}>
+						<Ionicons name="trash-outline" size={18} color="#ff4444" />
+						<ThemedText style={styles.devButtonText}>Clear All Storage</ThemedText>
+					</TouchableOpacity>
+				</View>
+			)}
 		</View>
 	);
 }
@@ -243,5 +275,35 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 		marginTop: 8,
 		marginLeft: 4,
+	},
+	devSection: {
+		marginTop: 40,
+		borderTopWidth: 1,
+		borderTopColor: "#ff444433",
+		paddingTop: 16,
+	},
+	devLabel: {
+		fontSize: 11,
+		fontWeight: "700",
+		letterSpacing: 1.2,
+		color: "#ff4444",
+		opacity: 0.7,
+		marginBottom: 12,
+		marginLeft: 4,
+	},
+	devButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		paddingVertical: 14,
+		paddingHorizontal: 16,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: "#ff444455",
+	},
+	devButtonText: {
+		color: "#ff4444",
+		fontWeight: "600",
+		fontSize: 15,
 	},
 });
