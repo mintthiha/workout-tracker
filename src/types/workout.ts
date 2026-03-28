@@ -1,3 +1,15 @@
+// ─── Feed ─────────────────────────────────────────────────────────────────────
+
+export type PostType = "text";
+
+export interface Post {
+	id: string;
+	userId: string;
+	type: PostType;
+	content: string;
+	createdAt: number; // Unix ms timestamp
+}
+
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export type MuscleGroup =
