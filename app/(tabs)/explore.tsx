@@ -24,8 +24,14 @@ export default function FeedScreen() {
 	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
 
-	// Subscribe to real-time posts
+	// Subscribe to real-time posts — re-runs when userId changes so the
+	// listener is established only after auth is ready.
 	useEffect(() => {
+		if (!userId) return;
+
+		setLoading(true);
+		fetchedIds.current.clear();
+
 		const unsubscribe = subscribeToPosts(
 			(incoming) => {
 				setPosts(incoming);
@@ -50,7 +56,7 @@ export default function FeedScreen() {
 			},
 		);
 		return unsubscribe;
-	}, []);
+	}, [userId]);
 
 	async function handleCreatePost(content: string) {
 		if (!userId) return;
