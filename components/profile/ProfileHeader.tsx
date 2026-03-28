@@ -10,7 +10,7 @@ import { uploadToCloudinary } from "@/src/lib/cloudinary";
 import { updateUserProfile } from "@/src/lib/userService";
 import { useAppContext } from "@/src/context/AppContext";
 
-const DEFAULT_AVATAR = require("../../assets/images/deermic.webp");
+const DEFAULT_AVATAR = require("../../assets/images/defaultPFP.jpg");
 
 interface ProfileHeaderProps {
 	profile: CachedProfile;

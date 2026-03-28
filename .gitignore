@@ -43,6 +43,9 @@ app-example
 /ios
 /android
 
+# IDE
+.idea/
+
 .claude
 
 ai-instructions/**
