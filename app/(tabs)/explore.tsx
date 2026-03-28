@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { PostCard } from "@/components/feed/PostCard";
 import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
 import { getUserProfile } from "@/src/lib/userService";
@@ -18,14 +19,12 @@ export default function FeedScreen() {
 	const [loading, setLoading] = useState(true);
 	const [modalVisible, setModalVisible] = useState(false);
 
-	// Cache userIds we've already fetched so we don't re-fetch on every update
 	const fetchedIds = useRef<Set<string>>(new Set());
 
-	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
+	const primary = useThemeColor({}, "primary");
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const tertiaryText = useThemeColor({}, "tertiaryText");
 
-	// Subscribe to real-time posts — re-runs when userId changes so the
-	// listener is established only after auth is ready.
 	useEffect(() => {
 		if (!userId) return;
 
@@ -37,7 +36,6 @@ export default function FeedScreen() {
 				setPosts(incoming);
 				setLoading(false);
 
-				// Fetch usernames for any new userIds we haven't seen yet
 				const newIds = incoming
 					.map((p) => p.userId)
 					.filter((id) => !fetchedIds.current.has(id));
@@ -65,38 +63,47 @@ export default function FeedScreen() {
 
 	if (loading) {
 		return (
-			<View style={styles.centered}>
-				<ActivityIndicator size="large" color={accentColor} />
-			</View>
+			<ThemedView style={styles.centered}>
+				<ActivityIndicator size="large" color={primary} />
+			</ThemedView>
 		);
 	}
 
 	return (
-		<View style={styles.container}>
+		<ThemedView style={styles.container}>
 			<FlatList
 				data={posts}
 				keyExtractor={(item) => item.id}
 				renderItem={({ item }) => (
-					<PostCard
-						post={item}
-						username={usernames[item.userId] ?? "..."}
-					/>
+					<PostCard post={item} username={usernames[item.userId] ?? "..."} />
 				)}
 				contentContainerStyle={styles.list}
+				showsVerticalScrollIndicator={false}
 				ListHeaderComponent={
-					<ThemedText type="title" style={styles.heading}>
-						Feed
-					</ThemedText>
+					<View style={styles.header}>
+						<ThemedText style={styles.heading}>Feed</ThemedText>
+						<ThemedText style={[styles.subheading, { color: tertiaryText }]}>
+							{posts.length > 0
+								? `${posts.length} post${posts.length !== 1 ? "s" : ""}`
+								: ""}
+						</ThemedText>
+					</View>
 				}
 				ListEmptyComponent={
-					<ThemedText style={[styles.empty, { color: secondaryText }]}>
-						No posts yet. Be the first to post!
-					</ThemedText>
+					<View style={styles.emptyState}>
+						<Ionicons name="newspaper-outline" size={52} color={tertiaryText} />
+						<ThemedText style={[styles.emptyTitle, { color: secondaryText }]}>
+							Nothing here yet
+						</ThemedText>
+						<ThemedText style={[styles.emptySubtitle, { color: tertiaryText }]}>
+							Be the first to post something!
+						</ThemedText>
+					</View>
 				}
 			/>
 
 			<TouchableOpacity
-				style={[styles.fab, { backgroundColor: accentColor }]}
+				style={[styles.fab, { backgroundColor: primary }]}
 				onPress={() => setModalVisible(true)}
 			>
 				<Ionicons name="add" size={28} color="#fff" />
@@ -107,7 +114,7 @@ export default function FeedScreen() {
 				onClose={() => setModalVisible(false)}
 				onSubmit={handleCreatePost}
 			/>
-		</View>
+		</ThemedView>
 	);
 }
 
@@ -121,16 +128,37 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	list: {
-		padding: 16,
+		paddingHorizontal: 16,
+		paddingTop: 60,
 		paddingBottom: 100,
 	},
-	heading: {
-		marginBottom: 16,
+	header: {
+		marginBottom: 20,
 	},
-	empty: {
-		textAlign: "center",
-		marginTop: 40,
+	heading: {
+		fontSize: 36,
+		fontWeight: "800",
+		letterSpacing: -0.8,
+	},
+	subheading: {
+		fontSize: 13,
+		fontWeight: "600",
+		letterSpacing: 0.3,
+		marginTop: 2,
+	},
+	emptyState: {
+		alignItems: "center",
+		paddingTop: 80,
+		gap: 12,
+	},
+	emptyTitle: {
+		fontSize: 20,
+		fontWeight: "700",
+		letterSpacing: -0.3,
+	},
+	emptySubtitle: {
 		fontSize: 15,
+		textAlign: "center",
 	},
 	fab: {
 		position: "absolute",
@@ -138,13 +166,13 @@ const styles = StyleSheet.create({
 		right: 24,
 		width: 56,
 		height: 56,
-		borderRadius: 28,
+		borderRadius: 18,
 		justifyContent: "center",
 		alignItems: "center",
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 8,
+		shadowOpacity: 0.25,
+		shadowRadius: 10,
 		elevation: 6,
 	},
 });
