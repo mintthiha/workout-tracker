@@ -15,11 +15,13 @@ export default function WorkoutScreen() {
 	const { userId, isLoaded } = useAppContext();
 	const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
 
-	if (isLoaded && !userId) return <Redirect href="/login" />;
-
+	// All hooks must run before any conditional return.
 	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
 	const tertiaryText = useThemeColor({ light: "#999999", dark: "#666666" }, "tertiaryText");
+	const dividerColor = useThemeColor({ light: "#f0f0f0", dark: "#2c2c2e" }, "cardBorder");
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	// Real-time listener — updates instantly on any create, edit, or delete.
 	useEffect(() => {
@@ -55,8 +57,6 @@ export default function WorkoutScreen() {
 									if (!userId) return;
 									try {
 										await workoutService.deleteTemplate(userId, template.id);
-										// No manual setTemplates needed — the onSnapshot listener
-										// will update the list automatically.
 									} catch {
 										Alert.alert(
 											"Error",
@@ -77,34 +77,55 @@ export default function WorkoutScreen() {
 		<ThemedView style={styles.container}>
 			{/* Header */}
 			<View style={styles.header}>
-				<ThemedText type="title" style={styles.headerTitle}>
-					Workout
-				</ThemedText>
+				<View>
+					<ThemedText type="title" style={styles.headerTitle}>
+						Workout
+					</ThemedText>
+					<ThemedText style={[styles.headerSubtitle, { color: secondaryText }]}>
+						{templates.length > 0
+							? `${templates.length} template${templates.length !== 1 ? "s" : ""}`
+							: "Build your routine"}
+					</ThemedText>
+				</View>
 				<TouchableOpacity
+					style={[styles.addButton, { backgroundColor: accentColor }]}
 					onPress={() => router.push("/workout/create")}
-					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+					hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 				>
-					<Ionicons name="add-circle-outline" size={28} color={accentColor} />
+					<Ionicons name="add" size={20} color="#fff" />
+					<ThemedText style={styles.addButtonText}>New</ThemedText>
 				</TouchableOpacity>
 			</View>
 
-			<ScrollView contentContainerStyle={styles.scrollContent}>
+			{templates.length > 0 && (
+				<View style={[styles.sectionHeader, { borderBottomColor: dividerColor }]}>
+					<ThemedText style={[styles.sectionLabel, { color: secondaryText }]}>
+						MY TEMPLATES
+					</ThemedText>
+				</View>
+			)}
+
+			<ScrollView
+				contentContainerStyle={styles.scrollContent}
+				showsVerticalScrollIndicator={false}
+			>
 				{templates.length === 0 ? (
 					<View style={styles.emptyState}>
-						<Ionicons name="barbell-outline" size={60} color={tertiaryText} />
+						<View style={[styles.emptyIconWrapper, { borderColor: dividerColor }]}>
+							<Ionicons name="barbell-outline" size={44} color={tertiaryText} />
+						</View>
 						<ThemedText style={[styles.emptyTitle, { color: secondaryText }]}>
 							No Templates Yet
 						</ThemedText>
 						<ThemedText style={[styles.emptySubtitle, { color: tertiaryText }]}>
-							Create your first workout template to get started.
+							Create a workout template to build your routine and track progress.
 						</ThemedText>
 						<TouchableOpacity
-							style={[styles.emptyButton, { borderColor: accentColor }]}
+							style={[styles.emptyButton, { backgroundColor: accentColor }]}
 							onPress={() => router.push("/workout/create")}
 						>
-							<ThemedText style={[styles.emptyButtonText, { color: accentColor }]}>
-								+ Create Template
-							</ThemedText>
+							<Ionicons name="add" size={18} color="#fff" />
+							<ThemedText style={styles.emptyButtonText}>Create Template</ThemedText>
 						</TouchableOpacity>
 					</View>
 				) : (
@@ -132,11 +153,39 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "flex-end",
 		paddingHorizontal: 20,
-		marginBottom: 20,
+		marginBottom: 16,
 	},
 	headerTitle: {
 		fontSize: 34,
 		fontWeight: "800",
+	},
+	headerSubtitle: {
+		fontSize: 14,
+		marginTop: 2,
+	},
+	addButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		paddingHorizontal: 14,
+		paddingVertical: 8,
+		borderRadius: 20,
+	},
+	addButtonText: {
+		color: "#fff",
+		fontSize: 15,
+		fontWeight: "600",
+	},
+	sectionHeader: {
+		paddingHorizontal: 20,
+		paddingBottom: 10,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		marginBottom: 12,
+	},
+	sectionLabel: {
+		fontSize: 12,
+		fontWeight: "600",
+		letterSpacing: 0.8,
 	},
 	scrollContent: {
 		paddingHorizontal: 16,
@@ -144,27 +193,39 @@ const styles = StyleSheet.create({
 	},
 	emptyState: {
 		alignItems: "center",
-		paddingTop: 80,
+		paddingTop: 60,
 		gap: 12,
+	},
+	emptyIconWrapper: {
+		width: 88,
+		height: 88,
+		borderRadius: 44,
+		borderWidth: 1.5,
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 4,
 	},
 	emptyTitle: {
 		fontSize: 20,
 		fontWeight: "600",
-		marginTop: 8,
 	},
 	emptySubtitle: {
 		fontSize: 15,
 		textAlign: "center",
-		paddingHorizontal: 32,
+		paddingHorizontal: 36,
+		lineHeight: 22,
 	},
 	emptyButton: {
-		marginTop: 16,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		marginTop: 8,
 		paddingHorizontal: 24,
-		paddingVertical: 12,
-		borderRadius: 10,
-		borderWidth: 1.5,
+		paddingVertical: 13,
+		borderRadius: 24,
 	},
 	emptyButtonText: {
+		color: "#fff",
 		fontSize: 16,
 		fontWeight: "600",
 	},
