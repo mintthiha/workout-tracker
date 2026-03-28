@@ -1,16 +1,21 @@
 // ─── Exercise Service ─────────────────────────────────────────────────────────
 // Reads global exercises from Firestore `exercises` collection.
 // Falls back to the local bundled library if offline or Firestore is empty.
-// Custom exercises are stored in AsyncStorage (swap to users/{uid}/exercises
-// in Firestore once Firebase Auth is wired).
+// Custom exercises are stored in Firestore under users/{uid}/exercises.
 
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+} from 'firebase/firestore';
 
 import { EXERCISE_LIBRARY } from '@/src/data/exerciseLibrary';
 import { db } from '@/src/lib/firebase';
-import * as exerciseStorage from '@/src/storage/exerciseStorage';
 import { Exercise, LoggedSet, WorkoutLog } from '@/src/types/workout';
-import { generateId } from '@/src/services/workoutService';
 
 // ─── Global Exercises (Firestore) ─────────────────────────────────────────────
 
@@ -30,24 +35,25 @@ export async function getExercises(): Promise<Exercise[]> {
   }
 }
 
-// ─── Custom Exercises ─────────────────────────────────────────────────────────
+// ─── Custom Exercises (Firestore, user-scoped) ────────────────────────────────
 
-export async function getCustomExercises(): Promise<Exercise[]> {
-  return exerciseStorage.loadCustomExercises();
+export async function getCustomExercises(userId: string): Promise<Exercise[]> {
+  const snap = await getDocs(
+    query(collection(db, 'users', userId, 'exercises'), orderBy('name'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Exercise));
 }
 
 export async function createCustomExercise(
+  userId: string,
   data: Omit<Exercise, 'id'>
 ): Promise<Exercise> {
-  const exercises = await exerciseStorage.loadCustomExercises();
-  const newExercise: Exercise = { ...data, id: `custom-${generateId()}` };
-  await exerciseStorage.saveCustomExercises([...exercises, newExercise]);
-  return newExercise;
+  const ref = await addDoc(collection(db, 'users', userId, 'exercises'), data);
+  return { id: ref.id, ...data };
 }
 
-export async function deleteCustomExercise(id: string): Promise<void> {
-  const exercises = await exerciseStorage.loadCustomExercises();
-  await exerciseStorage.saveCustomExercises(exercises.filter((e) => e.id !== id));
+export async function deleteCustomExercise(userId: string, id: string): Promise<void> {
+  await deleteDoc(doc(db, 'users', userId, 'exercises', id));
 }
 
 // ─── History helpers (derives from WorkoutLog[], no extra Firestore reads) ────

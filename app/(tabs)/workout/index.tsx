@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -12,8 +12,10 @@ import * as workoutService from "@/src/services/workoutService";
 import { WorkoutTemplate } from "@/src/types/workout";
 
 export default function WorkoutScreen() {
-	const { userId } = useAppContext();
+	const { userId, isLoaded } = useAppContext();
 	const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
@@ -9,6 +9,7 @@ import { ExerciseHistoryRow } from '@/components/exercises/ExerciseHistoryRow';
 import { ExerciseImage } from '@/components/exercises/ExerciseImage';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { EXERCISE_LIBRARY, MUSCLE_GROUP_LABELS } from '@/src/data/exerciseLibrary';
+import { useAppContext } from '@/src/context/AppContext';
 import * as exerciseService from '@/src/services/exerciseService';
 import * as workoutService from '@/src/services/workoutService';
 import { Exercise, WorkoutLog } from '@/src/types/workout';
@@ -19,6 +20,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 };
 
 export default function ExerciseDetailScreen() {
+  const { userId, isLoaded } = useAppContext();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { width } = useWindowDimensions();
   const heroSize = width - 32; // 16px padding each side
@@ -28,6 +30,8 @@ export default function ExerciseDetailScreen() {
   const [isCustom, setIsCustom] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  if (isLoaded && !userId) return <Redirect href="/login" />;
+
   const accentColor = useThemeColor({ light: '#3498db', dark: '#3498db' }, 'accent');
   const cardBg = useThemeColor({ light: '#f5f5f5', dark: '#1c1c1e' }, 'card');
   const cardBorder = useThemeColor({ light: '#e0e0e0', dark: '#2c2c2e' }, 'cardBorder');
@@ -36,15 +40,15 @@ export default function ExerciseDetailScreen() {
   const goldColor = '#ffd60a';
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !userId) return;
     async function load() {
-      // Try local library first (fast), then Firestore, then custom
+      // Try local library first (fast), then custom, then Firestore
       let found: Exercise | null =
         EXERCISE_LIBRARY.find((e) => e.id === id) ?? null;
       let custom = false;
 
       if (!found) {
-        const customs = await exerciseService.getCustomExercises();
+        const customs = await exerciseService.getCustomExercises(userId!);
         found = customs.find((e) => e.id === id) ?? null;
         if (found) custom = true;
       }
@@ -58,12 +62,12 @@ export default function ExerciseDetailScreen() {
       setExercise(found);
       setIsCustom(custom);
 
-      const workoutLogs = await workoutService.getWorkoutLogs();
+      const workoutLogs = await workoutService.getWorkoutLogs(userId!);
       setLogs(workoutLogs);
       setLoading(false);
     }
     load();
-  }, [id]);
+  }, [id, userId]);
 
   const history = useMemo(
     () => (exercise ? exerciseService.getExerciseHistory(exercise.id, logs) : []),
@@ -82,7 +86,7 @@ export default function ExerciseDetailScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await exerciseService.deleteCustomExercise(id!);
+          await exerciseService.deleteCustomExercise(userId!, id!);
           router.back();
         },
       },

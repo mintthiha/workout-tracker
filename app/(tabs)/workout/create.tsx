@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
@@ -66,8 +66,10 @@ export default function CreateTemplateScreen() {
 	const params = useLocalSearchParams<{ id?: string }>();
 	// useLocalSearchParams can return string | string[] at runtime
 	const id = Array.isArray(params.id) ? params.id[0] : params.id;
-	const { userId } = useAppContext();
+	const { userId, isLoaded } = useAppContext();
 	const isEditing = Boolean(id);
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	const [templateName, setTemplateName] = useState("");
 	const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
@@ -86,13 +88,16 @@ export default function CreateTemplateScreen() {
 	const textColor = useThemeColor({ light: "#11181C", dark: "#ECEDEE" }, "text");
 	const bgColor = useThemeColor({ light: "#fff", dark: "#151718" }, "background");
 
-	// Load exercises from Firestore on mount
+	// Load exercises from Firestore on mount (global + user's custom)
 	useEffect(() => {
-		exerciseService
-			.getExercises()
-			.then(setAvailableExercises)
+		if (!userId) return;
+		Promise.all([
+			exerciseService.getExercises(),
+			exerciseService.getCustomExercises(userId),
+		])
+			.then(([global, custom]) => setAvailableExercises([...global, ...custom]))
 			.finally(() => setLoadingExercises(false));
-	}, []);
+	}, [userId]);
 
 	// Load existing template when editing
 	useEffect(() => {
