@@ -1,12 +1,22 @@
 import { ThemedText } from "@/components/themed-text";
 import { useAppContext } from "@/src/context/AppContext";
 import { Ionicons } from "@expo/vector-icons";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export function SignOutButton() {
 	const { signOut } = useAppContext();
 
-	function handleSignOut() {
+	async function handleSignOut() {
+		if (Platform.OS === "web") {
+			if (!window.confirm("Are you sure you want to sign out?")) return;
+			try {
+				await signOut();
+			} catch {
+				window.alert("Failed to sign out. Please try again.");
+			}
+			return;
+		}
+
 		Alert.alert("Sign Out", "Are you sure you want to sign out?", [
 			{ text: "Cancel", style: "cancel" },
 			{
