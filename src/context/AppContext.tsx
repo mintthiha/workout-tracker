@@ -81,8 +81,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	// Called after login/register to cache the profile locally.
-	const setAccount = useCallback(async (_userId: string, profile: CachedProfile) => {
+	const setAccount = useCallback(async (userId: string, profile: CachedProfile) => {
 		await saveUserProfile(profile);
+		setState((prev) => ({ ...prev, userId, userProfile: profile }));
 	}, []);
 
 	const updatePreferences = useCallback(async (partial: Partial<AppPreferences>) => {

@@ -27,7 +27,16 @@ export async function uploadToCloudinary(
 	const ext = filename.split(".").pop() ?? "jpg";
 	const mimeType = resourceType === "video" ? `video/${ext}` : `image/${ext}`;
 
-	formData.append("file", { uri, name: filename, type: mimeType } as unknown as Blob);
+	if (typeof window !== "undefined") {
+		// Web: fetch the URI and convert to a Blob
+		const response = await fetch(uri);
+		const blob = await response.blob();
+		formData.append("file", blob, filename);
+	} else {
+		// Native: use the React Native FormData object pattern
+		formData.append("file", { uri, name: filename, type: mimeType } as unknown as Blob);
+	}
+
 	formData.append("upload_preset", UPLOAD_PRESET);
 	formData.append("resource_type", resourceType);
 
