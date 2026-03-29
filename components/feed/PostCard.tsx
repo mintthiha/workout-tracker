@@ -5,17 +5,18 @@ import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Post } from "@/src/types/workout";
 
-const DEFAULT_AVATAR = require("@/assets/images/deermic.webp");
+const DEFAULT_AVATAR = require("@/assets/images/defaultPFP.jpg");
 
 interface Props {
 	post: Post;
 	username: string;
+	avatarUrl?: string;
 }
 
 /**
  * Renders a single feed post with avatar, username, timestamp, and content.
  */
-export function PostCard({ post, username }: Props) {
+export function PostCard({ post, username, avatarUrl }: Props) {
 	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
@@ -31,7 +32,7 @@ export function PostCard({ post, username }: Props) {
 	return (
 		<View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
 			<View style={styles.header}>
-				<Image source={DEFAULT_AVATAR} style={styles.avatar} contentFit="cover" />
+				<Image source={avatarUrl ?? DEFAULT_AVATAR} style={styles.avatar} contentFit="cover" />
 				<View style={styles.meta}>
 					<ThemedText type="defaultSemiBold">{username}</ThemedText>
 					<ThemedText style={[styles.timestamp, { color: secondaryText }]}>

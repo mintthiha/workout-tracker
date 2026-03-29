@@ -12,9 +12,10 @@ import { createPost, subscribeToPosts } from "@/src/services/postService";
 import { Post } from "@/src/types/workout";
 
 export default function FeedScreen() {
-	const { userId } = useAppContext();
+	const { userId, userProfile } = useAppContext();
 	const [posts, setPosts] = useState<Post[]>([]);
 	const [usernames, setUsernames] = useState<Record<string, string>>({});
+	const [avatars, setAvatars] = useState<Record<string, string>>({});
 	const [loading, setLoading] = useState(true);
 	const [modalVisible, setModalVisible] = useState(false);
 
@@ -23,6 +24,12 @@ export default function FeedScreen() {
 
 	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
+
+	// Keep the current user's avatar in sync with their profile in AppContext
+	useEffect(() => {
+		if (!userId || !userProfile) return;
+		setAvatars((prev) => ({ ...prev, [userId]: userProfile.avatarUrl ?? "" }));
+	}, [userId, userProfile?.avatarUrl]);
 
 	// Subscribe to real-time posts — re-runs when userId changes so the
 	// listener is established only after auth is ready.
@@ -47,6 +54,9 @@ export default function FeedScreen() {
 					const profile = await getUserProfile(id);
 					if (profile) {
 						setUsernames((prev) => ({ ...prev, [id]: profile.username }));
+						if (profile.avatarUrl) {
+							setAvatars((prev) => ({ ...prev, [id]: profile.avatarUrl! }));
+						}
 					}
 				});
 			},
@@ -80,6 +90,7 @@ export default function FeedScreen() {
 					<PostCard
 						post={item}
 						username={usernames[item.userId] ?? "..."}
+						avatarUrl={avatars[item.userId]}
 					/>
 				)}
 				contentContainerStyle={styles.list}

@@ -12,7 +12,8 @@
 			"supportsTablet": true,
 			"bundleIdentifier": "com.axlcastillo.workouttracker",
 			"infoPlist": {
-				"UIBackgroundModes": ["audio", "fetch"]
+				"UIBackgroundModes": ["audio", "fetch"],
+				"NSPhotoLibraryUsageDescription": "Allow Lift Up to access your photo library to set a profile picture."
 			}
 		},
 		"android": {
@@ -30,7 +31,8 @@
 				"android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
 				"android.permission.RECEIVE_BOOT_COMPLETED",
 				"android.permission.VIBRATE",
-				"android.permission.POST_NOTIFICATIONS"
+				"android.permission.POST_NOTIFICATIONS",
+				"android.permission.READ_MEDIA_IMAGES"
 			]
 		},
 		"web": {
