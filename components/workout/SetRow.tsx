@@ -22,36 +22,49 @@ export function SetRow({
 	onToggleComplete,
 	onRemove,
 }: Props) {
-	const completedBg = useThemeColor({ light: "#edfaef", dark: "#1a2e1d" }, "card");
-	const defaultBg = useThemeColor({ light: "transparent", dark: "transparent" }, "background");
-	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
-	const textColor = useThemeColor({ light: "#11181C", dark: "#ECEDEE" }, "text");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
-	const inputBg = useThemeColor({ light: "#f0f0f0", dark: "#3a3a3c" }, "card");
-	const completedGreen = useThemeColor({ light: "#34c759", dark: "#30d158" }, "tint");
+	const textColor = useThemeColor({}, "text");
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const glassDivider = useThemeColor({}, "glassDivider");
+	const inputBg = useThemeColor({}, "inputBg");
+	const completedRowBg = useThemeColor({}, "completedRowBg");
+	const completedInputBg = useThemeColor({}, "completedInputBg");
+	const completedBorder = useThemeColor({}, "completedBorder");
+	const success = useThemeColor({}, "success");
 
-	const rowBg = set.completed ? completedBg : defaultBg;
+	const rowBg = set.completed ? completedRowBg : "transparent";
+	const currentInputBg = set.completed ? completedInputBg : inputBg;
+	const currentInputBorder = set.completed ? completedBorder : "transparent";
 
 	return (
-		<View style={[styles.row, { backgroundColor: rowBg, borderTopColor: cardBorder }]}>
-			{/* Set number */}
+		<View
+			style={[
+				styles.row,
+				{ backgroundColor: rowBg, borderTopColor: glassDivider },
+			]}
+		>
+			{/* Set number — long press to remove */}
 			<TouchableOpacity onLongPress={onRemove} style={styles.setNumCell}>
-				<ThemedText style={[styles.setNum, { color: secondaryText }]}>
-					{setNumber}
-				</ThemedText>
+				<ThemedText style={[styles.setNum, { color: secondaryText }]}>{setNumber}</ThemedText>
 			</TouchableOpacity>
 
-			{/* Previous (placeholder for future history integration) */}
+			{/* Previous target */}
 			<View style={styles.prevCell}>
 				<ThemedText style={[styles.prevText, { color: secondaryText }]}>
-					{set.targetWeight > 0 ? `${set.targetWeight} × ${set.targetReps}` : "—"}
+					{set.targetWeight > 0 ? `${set.targetWeight}×${set.targetReps}` : "—"}
 				</ThemedText>
 			</View>
 
 			{/* Weight input */}
 			<View style={styles.inputCell}>
 				<TextInput
-					style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+					style={[
+						styles.input,
+						{
+							backgroundColor: currentInputBg,
+							color: textColor,
+							borderColor: currentInputBorder,
+						},
+					]}
 					value={set.actualWeight === 0 ? "" : String(set.actualWeight)}
 					onChangeText={(t) => {
 						const n = parseFloat(t);
@@ -69,7 +82,14 @@ export function SetRow({
 			{/* Reps input */}
 			<View style={styles.inputCell}>
 				<TextInput
-					style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+					style={[
+						styles.input,
+						{
+							backgroundColor: currentInputBg,
+							color: textColor,
+							borderColor: currentInputBorder,
+						},
+					]}
 					value={set.actualReps === 0 ? "" : String(set.actualReps)}
 					onChangeText={(t) => {
 						const n = parseInt(t, 10);
@@ -89,14 +109,12 @@ export function SetRow({
 				<View
 					style={[
 						styles.checkBox,
-						set.completed && {
-							backgroundColor: completedGreen,
-							borderColor: completedGreen,
-						},
-						!set.completed && { borderColor: secondaryText },
+						set.completed
+							? { backgroundColor: success, borderColor: success }
+							: { borderColor: secondaryText },
 					]}
 				>
-					{set.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
+					{set.completed && <Ionicons name="checkmark" size={13} color="#fff" />}
 				</View>
 			</TouchableOpacity>
 		</View>
@@ -107,8 +125,11 @@ const styles = StyleSheet.create({
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingVertical: 8,
-		borderTopWidth: StyleSheet.hairlineWidth,
+		paddingVertical: 7,
+		borderTopWidth: 1,
+		borderRadius: 8,
+		marginHorizontal: -2,
+		paddingHorizontal: 2,
 	},
 	setNumCell: {
 		width: 36,
@@ -117,6 +138,7 @@ const styles = StyleSheet.create({
 	setNum: {
 		fontSize: 14,
 		fontWeight: "600",
+		fontVariant: ["tabular-nums"],
 	},
 	prevCell: {
 		flex: 1.2,
@@ -124,17 +146,19 @@ const styles = StyleSheet.create({
 	},
 	prevText: {
 		fontSize: 12,
+		fontVariant: ["tabular-nums"],
 	},
 	inputCell: {
 		flex: 1,
-		paddingHorizontal: 4,
+		paddingHorizontal: 3,
 	},
 	input: {
 		textAlign: "center",
 		fontSize: 15,
-		fontWeight: "500",
-		paddingVertical: 6,
-		borderRadius: 8,
+		fontWeight: "600",
+		paddingVertical: 7,
+		borderRadius: 10,
+		borderWidth: 1,
 		fontVariant: ["tabular-nums"],
 	},
 	checkCell: {
@@ -142,9 +166,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	checkBox: {
-		width: 24,
-		height: 24,
-		borderRadius: 6,
+		width: 26,
+		height: 26,
+		borderRadius: 8,
 		borderWidth: 2,
 		alignItems: "center",
 		justifyContent: "center",

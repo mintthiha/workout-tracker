@@ -16,10 +16,17 @@ interface Props {
 /**
  * Renders a single feed post with avatar, username, timestamp, and content.
  */
+<<<<<<< HEAD
 export function PostCard({ post, username, avatarUrl }: Props) {
 	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
+=======
+export function PostCard({ post, username }: Props) {
+	const cardBg = useThemeColor({}, "card");
+	const cardBorder = useThemeColor({}, "cardBorder");
+	const secondaryText = useThemeColor({}, "secondaryText");
+>>>>>>> 910eda7a93fb44bb88ffab9d6ab313b2221e001c
 
 	const timestamp = new Date(post.createdAt).toLocaleString(undefined, {
 		month: "short",

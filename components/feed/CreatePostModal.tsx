@@ -25,12 +25,12 @@ export function CreatePostModal({ visible, onClose, onSubmit }: Props) {
 	const [content, setContent] = useState("");
 	const [loading, setLoading] = useState(false);
 
-	const cardBg = useThemeColor({ light: "#fff", dark: "#1c1c1e" }, "card");
-	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
-	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
-	const inputBg = useThemeColor({ light: "#f5f5f5", dark: "#2c2c2e" }, "card");
-	const textColor = useThemeColor({ light: "#11181C", dark: "#ECEDEE" }, "text");
+	const cardBg = useThemeColor({}, "card");
+	const cardBorder = useThemeColor({}, "cardBorder");
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const accentColor = useThemeColor({}, "accent");
+	const inputBg = useThemeColor({}, "inputBg");
+	const textColor = useThemeColor({}, "text");
 
 	async function handleSubmit() {
 		const trimmed = content.trim();
