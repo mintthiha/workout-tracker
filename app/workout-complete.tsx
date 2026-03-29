@@ -12,11 +12,16 @@ import { LoggedExercise } from "@/src/types/workout";
 export default function WorkoutCompleteScreen() {
 	const { completedLog, clearCompletedLog } = useWorkout();
 
-	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
-	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
-	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
-	const goldColor = "#ffd60a";
+	const primary = useThemeColor({}, "primary");
+	const success = useThemeColor({}, "success");
+	const gold = useThemeColor({}, "gold");
+	const glassCard = useThemeColor({}, "glassCard");
+	const glassBorder = useThemeColor({}, "glassBorder");
+	const glassDivider = useThemeColor({}, "glassDivider");
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const accentTint = useThemeColor({}, "accentTint");
+	const successTint = useThemeColor({}, "successTint");
+	const goldTint = useThemeColor({}, "goldTint");
 
 	function handleDone() {
 		clearCompletedLog();
@@ -35,42 +40,45 @@ export default function WorkoutCompleteScreen() {
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Trophy */}
-				<View style={styles.iconContainer}>
-					<Ionicons name="trophy" size={64} color={goldColor} />
+				<View style={[styles.trophyWrap, { backgroundColor: goldTint }]}>
+					<Ionicons name="trophy" size={52} color={gold} />
 				</View>
 
 				<ThemedText style={styles.title}>Workout Complete!</ThemedText>
-				<ThemedText type="defaultSemiBold" style={styles.workoutName}>
-					{completedLog.templateName}
-				</ThemedText>
+				<ThemedText style={styles.workoutName}>{completedLog.templateName}</ThemedText>
 				<ThemedText style={[styles.dateText, { color: secondaryText }]}>
 					{formatDate(completedLog.completedAt)}
 				</ThemedText>
 
 				{/* Stats row */}
 				<View
-					style={[styles.statsCard, { backgroundColor: cardBg, borderColor: cardBorder }]}
+					style={[styles.statsCard, { backgroundColor: glassCard, borderColor: glassBorder }]}
 				>
 					<StatItem
 						icon="time-outline"
 						label="Duration"
 						value={formatDuration(completedLog.durationSeconds)}
+						color={primary}
+						iconBg={accentTint}
 						secondaryText={secondaryText}
 					/>
-					<View style={[styles.statDivider, { backgroundColor: cardBorder }]} />
+					<View style={[styles.statDivider, { backgroundColor: glassDivider }]} />
 					<StatItem
 						icon="barbell-outline"
 						label="Volume"
 						value={`${Math.round(completedLog.totalVolumeLbs).toLocaleString()} lb`}
+						color={success}
+						iconBg={successTint}
 						secondaryText={secondaryText}
 					/>
-					<View style={[styles.statDivider, { backgroundColor: cardBorder }]} />
+					<View style={[styles.statDivider, { backgroundColor: glassDivider }]} />
 					<StatItem
 						icon="trophy-outline"
 						label="PRs"
 						value={String(completedLog.personalRecords)}
+						color={completedLog.personalRecords > 0 ? gold : secondaryText}
+						iconBg={completedLog.personalRecords > 0 ? goldTint : "transparent"}
 						secondaryText={secondaryText}
-						valueColor={completedLog.personalRecords > 0 ? goldColor : undefined}
 					/>
 				</View>
 
@@ -81,7 +89,7 @@ export default function WorkoutCompleteScreen() {
 				<View
 					style={[
 						styles.exerciseList,
-						{ backgroundColor: cardBg, borderColor: cardBorder },
+						{ backgroundColor: glassCard, borderColor: glassBorder },
 					]}
 				>
 					{completedLog.exercises.map((ex, idx) => (
@@ -89,9 +97,10 @@ export default function WorkoutCompleteScreen() {
 							key={ex.exerciseId}
 							exercise={ex}
 							index={idx}
-							cardBorder={cardBorder}
+							glassDivider={glassDivider}
 							secondaryText={secondaryText}
-							goldColor={goldColor}
+							gold={gold}
+							goldTint={goldTint}
 						/>
 					))}
 				</View>
@@ -100,9 +109,10 @@ export default function WorkoutCompleteScreen() {
 			{/* Done button */}
 			<View style={styles.stickyFooter}>
 				<TouchableOpacity
-					style={[styles.doneBtn, { backgroundColor: accentColor }]}
+					style={[styles.doneBtn, { backgroundColor: primary }]}
 					onPress={handleDone}
 				>
+					<Ionicons name="checkmark-circle" size={20} color="#fff" />
 					<ThemedText style={styles.doneBtnText}>Done</ThemedText>
 				</TouchableOpacity>
 			</View>
@@ -116,21 +126,23 @@ function StatItem({
 	icon,
 	label,
 	value,
+	color,
+	iconBg,
 	secondaryText,
-	valueColor,
 }: {
 	icon: string;
 	label: string;
 	value: string;
+	color: string;
+	iconBg: string;
 	secondaryText: string;
-	valueColor?: string;
 }) {
 	return (
 		<View style={styles.statItem}>
-			<Ionicons name={icon as any} size={20} color={secondaryText} />
-			<ThemedText style={[styles.statValue, valueColor ? { color: valueColor } : undefined]}>
-				{value}
-			</ThemedText>
+			<View style={[styles.statIconWrap, { backgroundColor: iconBg }]}>
+				<Ionicons name={icon as any} size={18} color={color} />
+			</View>
+			<ThemedText style={[styles.statValue, { color }]}>{value}</ThemedText>
 			<ThemedText style={[styles.statLabel, { color: secondaryText }]}>{label}</ThemedText>
 		</View>
 	);
@@ -139,15 +151,17 @@ function StatItem({
 function ExerciseResult({
 	exercise,
 	index,
-	cardBorder,
+	glassDivider,
 	secondaryText,
-	goldColor,
+	gold,
+	goldTint,
 }: {
 	exercise: LoggedExercise;
 	index: number;
-	cardBorder: string;
+	glassDivider: string;
 	secondaryText: string;
-	goldColor: string;
+	gold: string;
+	goldTint: string;
 }) {
 	const completedSets = exercise.sets.filter((s) => s.completed);
 	const bestSet = getBestSet(exercise.sets);
@@ -157,20 +171,15 @@ function ExerciseResult({
 		<View
 			style={[
 				styles.exerciseResult,
-				index > 0 && {
-					borderTopWidth: StyleSheet.hairlineWidth,
-					borderTopColor: cardBorder,
-				},
+				index > 0 && { borderTopWidth: 1, borderTopColor: glassDivider },
 			]}
 		>
 			<View style={styles.exerciseResultRow}>
-				<ThemedText type="defaultSemiBold" style={styles.exerciseResultName}>
-					{exercise.exerciseName}
-				</ThemedText>
+				<ThemedText style={styles.exerciseResultName}>{exercise.exerciseName}</ThemedText>
 				{hasPR && (
-					<View style={styles.prBadge}>
-						<Ionicons name="star" size={12} color={goldColor} />
-						<ThemedText style={[styles.prText, { color: goldColor }]}>PR</ThemedText>
+					<View style={[styles.prBadge, { backgroundColor: goldTint }]}>
+						<Ionicons name="star" size={10} color={gold} />
+						<ThemedText style={[styles.prText, { color: gold }]}>PR</ThemedText>
 					</View>
 				)}
 			</View>
@@ -194,60 +203,80 @@ const styles = StyleSheet.create({
 		paddingBottom: 120,
 		alignItems: "center",
 	},
-	iconContainer: {
-		marginBottom: 12,
+	trophyWrap: {
+		width: 100,
+		height: 100,
+		borderRadius: 32,
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 16,
 		marginTop: 24,
 	},
 	title: {
-		fontSize: 28,
+		fontSize: 30,
 		fontWeight: "800",
-		marginBottom: 4,
+		marginBottom: 6,
 		textAlign: "center",
+		letterSpacing: -0.6,
 	},
 	workoutName: {
-		fontSize: 20,
+		fontSize: 18,
+		fontWeight: "600",
 		textAlign: "center",
+		opacity: 0.8,
 	},
 	dateText: {
 		fontSize: 14,
 		marginTop: 4,
-		marginBottom: 24,
+		marginBottom: 28,
 		textAlign: "center",
 	},
 	statsCard: {
 		flexDirection: "row",
-		borderRadius: 16,
+		borderRadius: 20,
 		borderWidth: 1,
-		paddingVertical: 20,
+		paddingVertical: 22,
 		width: "100%",
-		marginBottom: 28,
+		marginBottom: 32,
 	},
 	statItem: {
 		flex: 1,
 		alignItems: "center",
-		gap: 4,
+		gap: 5,
+	},
+	statIconWrap: {
+		width: 36,
+		height: 36,
+		borderRadius: 11,
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 2,
 	},
 	statValue: {
-		fontSize: 18,
+		fontSize: 17,
 		fontWeight: "700",
 		fontVariant: ["tabular-nums"],
 	},
 	statLabel: {
-		fontSize: 12,
+		fontSize: 11,
+		fontWeight: "600",
 	},
 	statDivider: {
-		width: StyleSheet.hairlineWidth,
+		width: 1,
 		alignSelf: "stretch",
+		marginVertical: 8,
 	},
 	sectionHeader: {
-		fontSize: 12,
+		fontSize: 11,
 		fontWeight: "700",
-		letterSpacing: 0.5,
+		letterSpacing: 1,
 		alignSelf: "flex-start",
 		marginBottom: 10,
+		marginLeft: 4,
+		textTransform: "uppercase",
 	},
 	exerciseList: {
-		borderRadius: 12,
+		borderRadius: 18,
 		borderWidth: 1,
 		paddingHorizontal: 16,
 		width: "100%",
@@ -259,10 +288,11 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 8,
-		marginBottom: 2,
+		marginBottom: 3,
 	},
 	exerciseResultName: {
 		fontSize: 15,
+		fontWeight: "600",
 	},
 	exerciseResultMeta: {
 		fontSize: 13,
@@ -270,10 +300,13 @@ const styles = StyleSheet.create({
 	prBadge: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 2,
+		gap: 3,
+		paddingHorizontal: 7,
+		paddingVertical: 3,
+		borderRadius: 8,
 	},
 	prText: {
-		fontSize: 11,
+		fontSize: 10,
 		fontWeight: "700",
 	},
 	stickyFooter: {
@@ -283,13 +316,22 @@ const styles = StyleSheet.create({
 		right: 16,
 	},
 	doneBtn: {
-		paddingVertical: 16,
-		borderRadius: 14,
+		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 17,
+		borderRadius: 18,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 6 },
+		shadowOpacity: 0.2,
+		shadowRadius: 14,
+		elevation: 7,
 	},
 	doneBtnText: {
 		color: "#fff",
 		fontSize: 18,
 		fontWeight: "700",
+		letterSpacing: -0.2,
 	},
 });

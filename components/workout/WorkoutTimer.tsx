@@ -18,7 +18,7 @@ function formatElapsed(seconds: number): string {
 }
 
 export function WorkoutTimer({ startedAt }: Props) {
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
+	const secondaryText = useThemeColor({}, "secondaryText");
 
 	const [elapsed, setElapsed] = useState(Math.floor((Date.now() - startedAt) / 1000));
 
@@ -38,7 +38,9 @@ export function WorkoutTimer({ startedAt }: Props) {
 
 const styles = StyleSheet.create({
 	timer: {
-		fontSize: 16,
+		fontSize: 14,
+		fontWeight: "500",
 		fontVariant: ["tabular-nums"],
+		letterSpacing: 0.3,
 	},
 });

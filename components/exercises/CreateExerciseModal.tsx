@@ -29,9 +29,10 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onCreated: () => void;
+  userId: string;
 }
 
-export function CreateExerciseModal({ visible, onClose, onCreated }: Props) {
+export function CreateExerciseModal({ visible, onClose, onCreated, userId }: Props) {
   const [name, setName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('chest');
   const [equipment, setEquipment] = useState<EquipmentType>('barbell');
@@ -56,7 +57,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: Props) {
       return;
     }
     setSaving(true);
-    await exerciseService.createCustomExercise({
+    await exerciseService.createCustomExercise(userId, {
       name: name.trim(),
       muscleGroup,
       equipment,

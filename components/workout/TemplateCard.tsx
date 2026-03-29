@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { MuscleGroupColors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MUSCLE_GROUP_LABELS } from "@/src/data/exerciseLibrary";
 import { WorkoutTemplate } from "@/src/types/workout";
@@ -13,55 +15,117 @@ interface Props {
 }
 
 export function TemplateCard({ template, onPress, onLongPress }: Props) {
-	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
-	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
-	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
+	const scheme = useColorScheme();
+	const muscleColorMap = MuscleGroupColors[scheme];
 
-	const muscleGroups = [...new Set(template.exercises.map((e) => e.muscleGroup))]
-		.map((g) => MUSCLE_GROUP_LABELS[g] ?? g)
-		.join(", ");
+	const cardBg = useThemeColor({}, "glassCard");
+	const cardBorder = useThemeColor({}, "glassBorder");
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const primary = useThemeColor({}, "primary");
+	const accentTint = useThemeColor({}, "accentTint");
+
+	const uniqueMuscleGroups = [...new Set(template.exercises.map((e) => e.muscleGroup))];
 
 	return (
 		<TouchableOpacity
 			style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}
 			onPress={onPress}
 			onLongPress={onLongPress}
-			activeOpacity={0.7}
+			activeOpacity={0.75}
 		>
-			<View style={styles.row}>
-				<ThemedText type="defaultSemiBold" style={styles.name}>
-					{template.name}
-				</ThemedText>
-				<Ionicons name="chevron-forward" size={18} color={secondaryText} />
+			<View style={styles.topRow}>
+				<View style={styles.nameBlock}>
+					<ThemedText style={styles.name} numberOfLines={1}>
+						{template.name}
+					</ThemedText>
+					<View style={styles.metaRow}>
+						<Ionicons name="layers-outline" size={12} color={secondaryText} />
+						<ThemedText style={[styles.meta, { color: secondaryText }]}>
+							{template.exercises.length} exercise
+							{template.exercises.length !== 1 ? "s" : ""}
+						</ThemedText>
+					</View>
+				</View>
+				<View style={[styles.arrowWrap, { backgroundColor: accentTint }]}>
+					<Ionicons name="chevron-forward" size={16} color={primary} />
+				</View>
 			</View>
 
-			<ThemedText style={[styles.meta, { color: secondaryText }]}>
-				{template.exercises.length} exercise{template.exercises.length !== 1 ? "s" : ""}
-				{muscleGroups ? `  ·  ${muscleGroups}` : ""}
-			</ThemedText>
+			{uniqueMuscleGroups.length > 0 && (
+				<View style={styles.pillRow}>
+					{uniqueMuscleGroups.map((g) => {
+						const colors = muscleColorMap[g as keyof typeof muscleColorMap] ?? {
+							bg: accentTint,
+							text: primary,
+						};
+						return (
+							<View key={g} style={[styles.pill, { backgroundColor: colors.bg }]}>
+								<ThemedText style={[styles.pillText, { color: colors.text }]}>
+									{MUSCLE_GROUP_LABELS[g] ?? g}
+								</ThemedText>
+							</View>
+						);
+					})}
+				</View>
+			)}
 		</TouchableOpacity>
 	);
 }
 
 const styles = StyleSheet.create({
 	card: {
-		borderRadius: 12,
+		borderRadius: 18,
 		padding: 16,
 		marginBottom: 12,
 		borderWidth: 1,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.12,
+		shadowRadius: 14,
+		elevation: 3,
 	},
-	row: {
+	topRow: {
 		flexDirection: "row",
-		justifyContent: "space-between",
 		alignItems: "center",
-		marginBottom: 4,
+		gap: 12,
+	},
+	nameBlock: {
+		flex: 1,
+		gap: 4,
 	},
 	name: {
-		fontSize: 18,
-		flex: 1,
+		fontSize: 17,
+		fontWeight: "700",
+		letterSpacing: -0.3,
+	},
+	metaRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
 	},
 	meta: {
-		fontSize: 14,
+		fontSize: 13,
+	},
+	arrowWrap: {
+		width: 34,
+		height: 34,
+		borderRadius: 11,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	pillRow: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 6,
+		marginTop: 12,
+	},
+	pill: {
+		paddingHorizontal: 9,
+		paddingVertical: 4,
+		borderRadius: 20,
+	},
+	pillText: {
+		fontSize: 11,
+		fontWeight: "600",
 	},
 });

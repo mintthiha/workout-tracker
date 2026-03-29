@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -12,24 +12,22 @@ import * as workoutService from "@/src/services/workoutService";
 import { WorkoutTemplate } from "@/src/types/workout";
 
 export default function WorkoutScreen() {
-	const { userId } = useAppContext();
+	const { userId, isLoaded } = useAppContext();
 	const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
 
-	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
-	const tertiaryText = useThemeColor({ light: "#999999", dark: "#666666" }, "tertiaryText");
+	const primary = useThemeColor({}, "primary");
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const tertiaryText = useThemeColor({}, "tertiaryText");
+	const accentTint = useThemeColor({}, "accentTint");
 
-	// Real-time listener — updates instantly on any create, edit, or delete.
+	if (isLoaded && !userId) return <Redirect href="/login" />;
+
 	useEffect(() => {
 		if (!userId) {
 			setTemplates([]);
 			return;
 		}
-		const unsubscribe = workoutService.subscribeToTemplates(
-			userId,
-			setTemplates,
-			() => {}, // silently ignore listener errors; stale data is acceptable
-		);
+		const unsubscribe = workoutService.subscribeToTemplates(userId, setTemplates, () => {});
 		return unsubscribe;
 	}, [userId]);
 
@@ -53,8 +51,6 @@ export default function WorkoutScreen() {
 									if (!userId) return;
 									try {
 										await workoutService.deleteTemplate(userId, template.id);
-										// No manual setTemplates needed — the onSnapshot listener
-										// will update the list automatically.
 									} catch {
 										Alert.alert(
 											"Error",
@@ -75,45 +71,56 @@ export default function WorkoutScreen() {
 		<ThemedView style={styles.container}>
 			{/* Header */}
 			<View style={styles.header}>
-				<ThemedText type="title" style={styles.headerTitle}>
-					Workout
-				</ThemedText>
+				<View>
+					<ThemedText style={[styles.headerEyebrow, { color: tertiaryText }]}>
+						My
+					</ThemedText>
+					<ThemedText style={styles.headerTitle}>Workouts</ThemedText>
+				</View>
 				<TouchableOpacity
+					style={[styles.addBtn, { backgroundColor: primary }]}
 					onPress={() => router.push("/workout/create")}
-					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+					hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 				>
-					<Ionicons name="add-circle-outline" size={28} color={accentColor} />
+					<Ionicons name="add" size={24} color="#fff" />
 				</TouchableOpacity>
 			</View>
 
-			<ScrollView contentContainerStyle={styles.scrollContent}>
+			<ScrollView
+				contentContainerStyle={styles.scrollContent}
+				showsVerticalScrollIndicator={false}
+			>
 				{templates.length === 0 ? (
 					<View style={styles.emptyState}>
-						<Ionicons name="barbell-outline" size={60} color={tertiaryText} />
-						<ThemedText style={[styles.emptyTitle, { color: secondaryText }]}>
-							No Templates Yet
-						</ThemedText>
-						<ThemedText style={[styles.emptySubtitle, { color: tertiaryText }]}>
-							Create your first workout template to get started.
+						<View style={[styles.emptyIconWrap, { backgroundColor: accentTint }]}>
+							<Ionicons name="barbell-outline" size={48} color={primary} />
+						</View>
+						<ThemedText style={styles.emptyTitle}>No Templates Yet</ThemedText>
+						<ThemedText style={[styles.emptySubtitle, { color: secondaryText }]}>
+							Build your first workout template and start tracking your gains.
 						</ThemedText>
 						<TouchableOpacity
-							style={[styles.emptyButton, { borderColor: accentColor }]}
+							style={[styles.emptyButton, { backgroundColor: primary }]}
 							onPress={() => router.push("/workout/create")}
 						>
-							<ThemedText style={[styles.emptyButtonText, { color: accentColor }]}>
-								+ Create Template
-							</ThemedText>
+							<Ionicons name="add" size={18} color="#fff" />
+							<ThemedText style={styles.emptyButtonText}>Create Template</ThemedText>
 						</TouchableOpacity>
 					</View>
 				) : (
-					templates.map((template) => (
-						<TemplateCard
-							key={template.id}
-							template={template}
-							onPress={() => router.push(`/workout/${template.id}`)}
-							onLongPress={() => handleLongPress(template)}
-						/>
-					))
+					<>
+						<ThemedText style={[styles.listLabel, { color: tertiaryText }]}>
+							{templates.length} template{templates.length !== 1 ? "s" : ""}
+						</ThemedText>
+						{templates.map((template) => (
+							<TemplateCard
+								key={template.id}
+								template={template}
+								onPress={() => router.push(`/workout/${template.id}`)}
+								onLongPress={() => handleLongPress(template)}
+							/>
+						))}
+					</>
 				)}
 			</ScrollView>
 		</ThemedView>
@@ -130,40 +137,85 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "flex-end",
 		paddingHorizontal: 20,
-		marginBottom: 20,
+		marginBottom: 24,
+	},
+	headerEyebrow: {
+		fontSize: 13,
+		fontWeight: "600",
+		letterSpacing: 0.5,
+		textTransform: "uppercase",
 	},
 	headerTitle: {
-		fontSize: 34,
+		fontSize: 36,
 		fontWeight: "800",
+		letterSpacing: -0.8,
+		marginTop: 2,
+	},
+	addBtn: {
+		width: 44,
+		height: 44,
+		borderRadius: 14,
+		alignItems: "center",
+		justifyContent: "center",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.25,
+		shadowRadius: 10,
+		elevation: 5,
 	},
 	scrollContent: {
 		paddingHorizontal: 16,
-		paddingBottom: 40,
+		paddingBottom: 48,
+	},
+	listLabel: {
+		fontSize: 11,
+		fontWeight: "700",
+		letterSpacing: 0.8,
+		textTransform: "uppercase",
+		marginBottom: 12,
+		marginLeft: 4,
 	},
 	emptyState: {
 		alignItems: "center",
 		paddingTop: 80,
-		gap: 12,
+		gap: 14,
+	},
+	emptyIconWrap: {
+		width: 96,
+		height: 96,
+		borderRadius: 30,
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 8,
 	},
 	emptyTitle: {
-		fontSize: 20,
-		fontWeight: "600",
-		marginTop: 8,
+		fontSize: 22,
+		fontWeight: "700",
+		letterSpacing: -0.4,
 	},
 	emptySubtitle: {
 		fontSize: 15,
 		textAlign: "center",
-		paddingHorizontal: 32,
+		paddingHorizontal: 40,
+		lineHeight: 22,
 	},
 	emptyButton: {
-		marginTop: 16,
-		paddingHorizontal: 24,
-		paddingVertical: 12,
-		borderRadius: 10,
-		borderWidth: 1.5,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		marginTop: 8,
+		paddingHorizontal: 28,
+		paddingVertical: 15,
+		borderRadius: 16,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.2,
+		shadowRadius: 10,
+		elevation: 4,
 	},
 	emptyButtonText: {
+		color: "#fff",
 		fontSize: 16,
-		fontWeight: "600",
+		fontWeight: "700",
 	},
 });

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +16,7 @@ import { FilterChips } from '@/components/exercises/FilterChips';
 import { CreateExerciseModal } from '@/components/exercises/CreateExerciseModal';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '@/src/data/exerciseLibrary';
+import { useAppContext } from '@/src/context/AppContext';
 import * as exerciseService from '@/src/services/exerciseService';
 import { Exercise, EquipmentType } from '@/src/types/workout';
 
@@ -40,6 +41,7 @@ interface Section {
 }
 
 export default function ExercisesScreen() {
+  const { userId, isLoaded } = useAppContext();
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,8 @@ export default function ExercisesScreen() {
   const [selectedMuscles, setSelectedMuscles] = useState<Set<string>>(new Set());
   const [selectedEquipment, setSelectedEquipment] = useState<Set<string>>(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  if (isLoaded && !userId) return <Redirect href="/login" />;
 
   const accentColor = useThemeColor({ light: '#3498db', dark: '#3498db' }, 'accent');
   const cardBg = useThemeColor({ light: '#f5f5f5', dark: '#1c1c1e' }, 'card');
@@ -57,17 +61,18 @@ export default function ExercisesScreen() {
   const tertiaryText = useThemeColor({ light: '#999999', dark: '#666666' }, 'tertiaryText');
 
   async function loadExercises() {
+    if (!userId) return;
     setLoading(true);
     const [global, custom] = await Promise.all([
       exerciseService.getExercises(),
-      exerciseService.getCustomExercises(),
+      exerciseService.getCustomExercises(userId),
     ]);
     setAllExercises(global);
     setCustomExercises(custom);
     setLoading(false);
   }
 
-  useFocusEffect(useCallback(() => { loadExercises(); }, []));
+  useFocusEffect(useCallback(() => { loadExercises(); }, [userId]));
 
   const merged: (Exercise & { isCustom: boolean })[] = useMemo(() => [
     ...allExercises.map((e) => ({ ...e, isCustom: false })),
@@ -228,6 +233,7 @@ export default function ExercisesScreen() {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreated={loadExercises}
+        userId={userId!}
       />
     </ThemedView>
   );

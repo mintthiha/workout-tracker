@@ -11,7 +11,7 @@ import {
 } from "@/src/services/workoutService";
 import { WorkoutLog } from "@/src/types/workout";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { Redirect, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -35,9 +35,11 @@ function groupByMonth(logs: WorkoutLog[]): MonthGroup[] {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HistoryScreen() {
-	const { userId } = useAppContext();
+	const { userId, isLoaded } = useAppContext();
 	const [groups, setGroups] = useState<MonthGroup[]>([]);
 	const [isEmpty, setIsEmpty] = useState(false);
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");

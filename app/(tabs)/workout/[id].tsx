@@ -6,7 +6,10 @@ import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-nat
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ExerciseListItem } from "@/components/workout/ExerciseListItem";
+import { MuscleGroupColors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { MUSCLE_GROUP_LABELS } from "@/src/data/exerciseLibrary";
 import { useAppContext } from "@/src/context/AppContext";
 import { useWorkout } from "@/src/context/WorkoutContext";
 import * as workoutService from "@/src/services/workoutService";
@@ -18,12 +21,15 @@ export default function TemplateDetailScreen() {
 	const [template, setTemplate] = useState<WorkoutTemplate | null>(null);
 	const { startWorkout } = useWorkout();
 
-	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
-	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
-	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
-	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
+	const scheme = useColorScheme();
+	const muscleColorMap = MuscleGroupColors[scheme];
 
-	// Real-time listener — reflects edits immediately without a re-fetch.
+	const primary = useThemeColor({}, "primary");
+	const secondaryText = useThemeColor({}, "secondaryText");
+	const glassCard = useThemeColor({}, "glassCard");
+	const glassBorder = useThemeColor({}, "glassBorder");
+	const accentTint = useThemeColor({}, "accentTint");
+
 	useEffect(() => {
 		if (!id || !userId) return;
 		const unsubscribe = workoutService.subscribeToTemplate(
@@ -63,16 +69,28 @@ export default function TemplateDetailScreen() {
 		);
 	}
 
+	const uniqueMuscleGroups = [...new Set(template.exercises.map((e) => e.muscleGroup))];
+
 	return (
 		<ThemedView style={styles.container}>
-			{/* Header */}
+			{/* Header nav */}
 			<View style={styles.header}>
 				<TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-					<Ionicons name="chevron-back" size={24} color={accentColor} />
-					<ThemedText style={[styles.backText, { color: accentColor }]}>Back</ThemedText>
+					<View
+						style={[
+							styles.navBtn,
+							{ backgroundColor: glassCard, borderColor: glassBorder },
+						]}
+					>
+						<Ionicons name="chevron-back" size={20} color={primary} />
+					</View>
 				</TouchableOpacity>
-				<TouchableOpacity onPress={() => router.push(`/workout/create?id=${template.id}`)}>
-					<ThemedText style={[styles.editBtn, { color: accentColor }]}>Edit</ThemedText>
+				<TouchableOpacity
+					style={[styles.editPill, { backgroundColor: glassCard, borderColor: glassBorder }]}
+					onPress={() => router.push(`/workout/create?id=${template.id}`)}
+				>
+					<Ionicons name="pencil-outline" size={14} color={primary} />
+					<ThemedText style={[styles.editPillText, { color: primary }]}>Edit</ThemedText>
 				</TouchableOpacity>
 			</View>
 
@@ -80,18 +98,68 @@ export default function TemplateDetailScreen() {
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
-				<ThemedText type="title" style={styles.templateName}>
-					{template.name}
-				</ThemedText>
-				<ThemedText style={[styles.exerciseCount, { color: secondaryText }]}>
-					{template.exercises.length} exercise{template.exercises.length !== 1 ? "s" : ""}
-				</ThemedText>
+				{/* Title block */}
+				<ThemedText style={styles.templateName}>{template.name}</ThemedText>
+
+				{/* Muscle group chips */}
+				{uniqueMuscleGroups.length > 0 && (
+					<View style={styles.chipsRow}>
+						{uniqueMuscleGroups.map((g) => {
+							const colors = muscleColorMap[g as keyof typeof muscleColorMap] ?? {
+								bg: accentTint,
+								text: primary,
+							};
+							return (
+								<View key={g} style={[styles.chip, { backgroundColor: colors.bg }]}>
+									<ThemedText style={[styles.chipText, { color: colors.text }]}>
+										{MUSCLE_GROUP_LABELS[g] ?? g}
+									</ThemedText>
+								</View>
+							);
+						})}
+					</View>
+				)}
+
+				{/* Stats row */}
+				<View
+					style={[styles.statsRow, { backgroundColor: glassCard, borderColor: glassBorder }]}
+				>
+					<View style={styles.statItem}>
+						<ThemedText style={[styles.statValue, { color: primary }]}>
+							{template.exercises.length}
+						</ThemedText>
+						<ThemedText style={[styles.statLabel, { color: secondaryText }]}>
+							Exercises
+						</ThemedText>
+					</View>
+					<View style={[styles.statDivider, { backgroundColor: glassBorder }]} />
+					<View style={styles.statItem}>
+						<ThemedText style={[styles.statValue, { color: primary }]}>
+							{template.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}
+						</ThemedText>
+						<ThemedText style={[styles.statLabel, { color: secondaryText }]}>
+							Total Sets
+						</ThemedText>
+					</View>
+					<View style={[styles.statDivider, { backgroundColor: glassBorder }]} />
+					<View style={styles.statItem}>
+						<ThemedText style={[styles.statValue, { color: primary }]}>
+							{uniqueMuscleGroups.length}
+						</ThemedText>
+						<ThemedText style={[styles.statLabel, { color: secondaryText }]}>
+							Muscles
+						</ThemedText>
+					</View>
+				</View>
 
 				{/* Exercise list */}
+				<ThemedText style={[styles.sectionLabel, { color: secondaryText }]}>
+					EXERCISES
+				</ThemedText>
 				<View
 					style={[
 						styles.exerciseList,
-						{ backgroundColor: cardBg, borderColor: cardBorder },
+						{ backgroundColor: glassCard, borderColor: glassBorder },
 					]}
 				>
 					{template.exercises.map((ex, idx) => (
@@ -99,16 +167,17 @@ export default function TemplateDetailScreen() {
 					))}
 				</View>
 
-				{/* Spacer for sticky button */}
 				<View style={styles.bottomSpacer} />
 			</ScrollView>
 
 			{/* Sticky start button */}
 			<View style={styles.stickyFooter}>
 				<TouchableOpacity
-					style={[styles.startBtn, { backgroundColor: accentColor }]}
+					style={[styles.startBtn, { backgroundColor: primary }]}
 					onPress={handleStartWorkout}
+					activeOpacity={0.85}
 				>
+					<Ionicons name="play" size={18} color="#fff" />
 					<ThemedText style={styles.startBtnText}>Start Workout</ThemedText>
 				</TouchableOpacity>
 			</View>
@@ -131,39 +200,96 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "center",
 		paddingHorizontal: 16,
-		marginBottom: 8,
+		marginBottom: 12,
 	},
-	backBtn: {
+	backBtn: {},
+	navBtn: {
+		width: 38,
+		height: 38,
+		borderRadius: 12,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1,
+	},
+	editPill: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 2,
+		gap: 5,
+		paddingHorizontal: 14,
+		paddingVertical: 8,
+		borderRadius: 12,
+		borderWidth: 1,
 	},
-	backText: {
-		fontSize: 17,
-	},
-	editBtn: {
-		fontSize: 17,
+	editPillText: {
+		fontSize: 14,
+		fontWeight: "600",
 	},
 	scrollContent: {
 		paddingHorizontal: 16,
 		paddingBottom: 20,
 	},
 	templateName: {
-		fontSize: 32,
+		fontSize: 34,
 		fontWeight: "800",
-		marginBottom: 4,
+		letterSpacing: -0.8,
+		marginBottom: 12,
 	},
-	exerciseCount: {
-		fontSize: 15,
-		marginBottom: 20,
+	chipsRow: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 6,
+		marginBottom: 24,
+	},
+	chip: {
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 20,
+	},
+	chipText: {
+		fontSize: 12,
+		fontWeight: "600",
+	},
+	statsRow: {
+		flexDirection: "row",
+		borderRadius: 16,
+		borderWidth: 1,
+		paddingVertical: 18,
+		marginBottom: 28,
+	},
+	statItem: {
+		flex: 1,
+		alignItems: "center",
+		gap: 4,
+	},
+	statValue: {
+		fontSize: 22,
+		fontWeight: "800",
+		fontVariant: ["tabular-nums"],
+	},
+	statLabel: {
+		fontSize: 12,
+		fontWeight: "500",
+	},
+	statDivider: {
+		width: 1,
+		alignSelf: "stretch",
+		marginVertical: 4,
+	},
+	sectionLabel: {
+		fontSize: 11,
+		fontWeight: "700",
+		letterSpacing: 1,
+		textTransform: "uppercase",
+		marginBottom: 10,
+		marginLeft: 4,
 	},
 	exerciseList: {
-		borderRadius: 12,
+		borderRadius: 18,
 		paddingHorizontal: 16,
 		borderWidth: 1,
 	},
 	bottomSpacer: {
-		height: 100,
+		height: 110,
 	},
 	stickyFooter: {
 		position: "absolute",
@@ -172,13 +298,22 @@ const styles = StyleSheet.create({
 		right: 16,
 	},
 	startBtn: {
-		paddingVertical: 16,
-		borderRadius: 14,
+		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 17,
+		borderRadius: 18,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 6 },
+		shadowOpacity: 0.25,
+		shadowRadius: 14,
+		elevation: 7,
 	},
 	startBtnText: {
 		color: "#fff",
 		fontSize: 18,
 		fontWeight: "700",
+		letterSpacing: -0.2,
 	},
 });

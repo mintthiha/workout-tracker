@@ -52,3 +52,7 @@ ai-instructions/**
 
 # Firebase admin service account (never commit)
 scripts/serviceAccountKey.json
+
+.agents/
+memory/
+skills-lock.json
