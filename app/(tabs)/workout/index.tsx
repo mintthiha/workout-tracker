@@ -20,8 +20,6 @@ export default function WorkoutScreen() {
 	const tertiaryText = useThemeColor({}, "tertiaryText");
 	const accentTint = useThemeColor({}, "accentTint");
 
-	if (isLoaded && !userId) return <Redirect href="/login" />;
-
 	useEffect(() => {
 		if (!userId) {
 			setTemplates([]);
@@ -30,6 +28,8 @@ export default function WorkoutScreen() {
 		const unsubscribe = workoutService.subscribeToTemplates(userId, setTemplates, () => {});
 		return unsubscribe;
 	}, [userId]);
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	const handleLongPress = useCallback(
 		(template: WorkoutTemplate) => {
