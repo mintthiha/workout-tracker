@@ -70,8 +70,6 @@ export default function CreateTemplateScreen() {
 	const { userId, isLoaded } = useAppContext();
 	const isEditing = Boolean(id);
 
-	if (isLoaded && !userId) return <Redirect href="/login" />;
-
 	const [templateName, setTemplateName] = useState("");
 	const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
 	const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
@@ -87,7 +85,6 @@ export default function CreateTemplateScreen() {
 	const glassDivider = useThemeColor({}, "glassDivider");
 	const secondaryText = useThemeColor({}, "secondaryText");
 	const tertiaryText = useThemeColor({}, "tertiaryText");
-	const inputBg = useThemeColor({}, "inputBg");
 	const textColor = useThemeColor({}, "text");
 	const background = useThemeColor({}, "background");
 	const accentTint = useThemeColor({}, "accentTint");
@@ -219,6 +216,8 @@ export default function CreateTemplateScreen() {
 			setSaving(false);
 		}
 	}, [templateName, exercises, userId, isEditing, id]);
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	return (
 		<ThemedView style={styles.container}>
@@ -559,10 +558,7 @@ function ExerciseCard({
 
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
-	const secondaryText = useThemeColor({}, "secondaryText");
 	const primary = useThemeColor({}, "primary");
-	const inputBg = useThemeColor({}, "inputBg");
-	const textColor = useThemeColor({}, "text");
 	const danger = useThemeColor({}, "danger");
 	const dangerTint = useThemeColor({}, "dangerTint");
 

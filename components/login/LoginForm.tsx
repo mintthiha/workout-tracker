@@ -129,7 +129,7 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
 				disabled={loading}
 			>
 				<ThemedText style={[styles.switchText, { color: secondaryTextColor }]}>
-					Don't have an account?{" "}
+					Don&apos;t have an account?{" "}
 				</ThemedText>
 				<ThemedText style={styles.switchAction}>Create Account</ThemedText>
 			</TouchableOpacity>

@@ -50,8 +50,6 @@ export default function ExercisesScreen() {
   const [selectedEquipment, setSelectedEquipment] = useState<Set<string>>(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  if (isLoaded && !userId) return <Redirect href="/login" />;
-
   const accentColor = useThemeColor({ light: '#3498db', dark: '#3498db' }, 'accent');
   const cardBg = useThemeColor({ light: '#f5f5f5', dark: '#1c1c1e' }, 'card');
   const cardBorder = useThemeColor({ light: '#e0e0e0', dark: '#2c2c2e' }, 'cardBorder');
@@ -60,7 +58,7 @@ export default function ExercisesScreen() {
   const textColor = useThemeColor({ light: '#11181C', dark: '#ECEDEE' }, 'text');
   const tertiaryText = useThemeColor({ light: '#999999', dark: '#666666' }, 'tertiaryText');
 
-  async function loadExercises() {
+  const loadExercises = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     const [global, custom] = await Promise.all([
@@ -70,9 +68,13 @@ export default function ExercisesScreen() {
     setAllExercises(global);
     setCustomExercises(custom);
     setLoading(false);
-  }
+  }, [userId]);
 
-  useFocusEffect(useCallback(() => { loadExercises(); }, [userId]));
+  useFocusEffect(
+    useCallback(() => {
+      loadExercises();
+    }, [loadExercises])
+  );
 
   const merged: (Exercise & { isCustom: boolean })[] = useMemo(() => [
     ...allExercises.map((e) => ({ ...e, isCustom: false })),
@@ -103,7 +105,11 @@ export default function ExercisesScreen() {
   function toggleMuscle(key: string) {
     setSelectedMuscles((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
   }
@@ -111,7 +117,11 @@ export default function ExercisesScreen() {
   function toggleEquipment(key: string) {
     setSelectedEquipment((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
   }
@@ -120,6 +130,8 @@ export default function ExercisesScreen() {
     () => new Set(customExercises.map((e) => e.id)),
     [customExercises]
   );
+
+  if (isLoaded && !userId) return <Redirect href="/login" />;
 
   // ─── Scrollable header: search + filters ───────────────────────────────────
   const ListHeader = (

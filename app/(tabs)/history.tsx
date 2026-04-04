@@ -39,13 +39,10 @@ export default function HistoryScreen() {
 	const [groups, setGroups] = useState<MonthGroup[]>([]);
 	const [isEmpty, setIsEmpty] = useState(false);
 
-	if (isLoaded && !userId) return <Redirect href="/login" />;
-
 	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
 	const tertiaryText = useThemeColor({ light: "#999999", dark: "#666666" }, "tertiaryText");
-	const textColor = useThemeColor({ light: "#161d22", dark: "#ECEDEE" }, "text");
 	const accentColor = useThemeColor({ light: "#3498db", dark: "#3498db" }, "accent");
 
 	// Reload logs every time the History tab is focused
@@ -72,6 +69,8 @@ export default function HistoryScreen() {
 				});
 		}, [userId]),
 	);
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	return (
 		<ThemedView style={styles.container}>

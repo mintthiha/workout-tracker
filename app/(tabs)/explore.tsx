@@ -30,7 +30,7 @@ export default function FeedScreen() {
 	useEffect(() => {
 		if (!userId || !userProfile) return;
 		setAvatars((prev) => ({ ...prev, [userId]: userProfile.avatarUrl ?? "" }));
-	}, [userId, userProfile?.avatarUrl]);
+	}, [userId, userProfile]);
 
 	// Subscribe to real-time posts — re-runs when userId changes so the
 	// listener is established only after auth is ready.

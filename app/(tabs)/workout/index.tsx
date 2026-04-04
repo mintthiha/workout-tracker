@@ -29,8 +29,6 @@ export default function WorkoutScreen() {
 		return unsubscribe;
 	}, [userId]);
 
-	if (isLoaded && !userId) return <Redirect href="/login" />;
-
 	const handleLongPress = useCallback(
 		(template: WorkoutTemplate) => {
 			Alert.alert(template.name, undefined, [
@@ -66,6 +64,8 @@ export default function WorkoutScreen() {
 		},
 		[userId],
 	);
+
+	if (isLoaded && !userId) return <Redirect href="/login" />;
 
 	return (
 		<ThemedView style={styles.container}>
