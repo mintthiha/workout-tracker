@@ -1,12 +1,23 @@
 // ─── Feed ─────────────────────────────────────────────────────────────────────
 
-export type PostType = "text";
+export type PostType = "text" | "image" | "video" | "media";
+
+export type PostMediaType = "image" | "video";
+
+export interface PostMedia {
+	type: PostMediaType;
+	url: string;
+	publicId: string;
+	width?: number;
+	height?: number;
+}
 
 export interface Post {
 	id: string;
 	userId: string;
 	type: PostType;
 	content: string;
+	media?: PostMedia;
 	createdAt: number; // Unix ms timestamp
 }
 

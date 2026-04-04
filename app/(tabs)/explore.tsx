@@ -10,7 +10,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
 import { getUserProfile } from "@/src/lib/userService";
 import { createPost, subscribeToPosts } from "@/src/services/postService";
-import { Post } from "@/src/types/workout";
+import { Post, PostMedia } from "@/src/types/workout";
 
 export default function FeedScreen() {
 	const { userId, userProfile } = useAppContext();
@@ -30,7 +30,7 @@ export default function FeedScreen() {
 	useEffect(() => {
 		if (!userId || !userProfile) return;
 		setAvatars((prev) => ({ ...prev, [userId]: userProfile.avatarUrl ?? "" }));
-	}, [userId, userProfile?.avatarUrl]);
+	}, [userId, userProfile]);
 
 	// Subscribe to real-time posts — re-runs when userId changes so the
 	// listener is established only after auth is ready.
@@ -68,9 +68,9 @@ export default function FeedScreen() {
 		return unsubscribe;
 	}, [userId]);
 
-	async function handleCreatePost(content: string) {
+	async function handleCreatePost(input: { content: string; media?: PostMedia }) {
 		if (!userId) return;
-		await createPost(userId, content);
+		await createPost({ userId, content: input.content, media: input.media });
 	}
 
 	if (loading) {
