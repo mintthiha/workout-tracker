@@ -12,18 +12,28 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/src/lib/firebase";
-import { Post } from "@/src/types/workout";
+import { Post, PostMedia } from "@/src/types/workout";
+
+interface CreatePostInput {
+	userId: string;
+	content: string;
+	media?: PostMedia;
+}
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
 /**
- * Creates a new text post in Firestore for the given user.
+ * Creates a new feed post in Firestore for the given user.
  */
-export async function createPost(userId: string, content: string): Promise<void> {
+export async function createPost({ userId, content, media }: CreatePostInput): Promise<void> {
+	const trimmedContent = content.trim();
+	const type = media ? (trimmedContent ? "media" : media.type) : "text";
+
 	await addDoc(collection(db, "posts"), {
 		userId,
-		type: "text",
-		content,
+		type,
+		content: trimmedContent,
+		...(media ? { media } : {}),
 		createdAt: serverTimestamp(),
 	});
 }

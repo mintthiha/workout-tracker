@@ -10,10 +10,10 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
 import { getUserProfile } from "@/src/lib/userService";
 import { createPost, subscribeToPosts } from "@/src/services/postService";
-import { Post } from "@/src/types/workout";
+import { Post, PostMedia } from "@/src/types/workout";
 
 export default function FeedScreen() {
-	const { userId, userProfile } = useAppContext();
+	const { userId, userProfile, isLoaded } = useAppContext();
 	const [posts, setPosts] = useState<Post[]>([]);
 	const [usernames, setUsernames] = useState<Record<string, string>>({});
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
@@ -68,9 +68,33 @@ export default function FeedScreen() {
 		return unsubscribe;
 	}, [userId]);
 
-	async function handleCreatePost(content: string) {
+	async function handleCreatePost(input: { content: string; media?: PostMedia }) {
 		if (!userId) return;
-		await createPost(userId, content);
+		await createPost({ userId, content: input.content, media: input.media });
+	}
+
+	if (!isLoaded) {
+		return (
+			<ThemedView style={styles.centered}>
+				<ActivityIndicator size="large" color={primary} />
+			</ThemedView>
+		);
+	}
+
+	if (!userId) {
+		return (
+			<ThemedView style={styles.centered}>
+				<View style={styles.signedOutState}>
+					<Ionicons name="people-outline" size={52} color={tertiaryText} />
+					<ThemedText style={[styles.emptyTitle, { color: secondaryText }]}>
+						Feed is for members.
+					</ThemedText>
+					<ThemedText style={[styles.emptySubtitle, { color: tertiaryText }]}>
+						To view what other lifters are posting on Lift Up, sign up or log in now!
+					</ThemedText>
+				</View>
+			</ThemedView>
+		);
 	}
 
 	if (loading) {
@@ -165,6 +189,11 @@ const styles = StyleSheet.create({
 	emptyState: {
 		alignItems: "center",
 		paddingTop: 80,
+		gap: 12,
+	},
+	signedOutState: {
+		alignItems: "center",
+		paddingHorizontal: 32,
 		gap: 12,
 	},
 	emptyTitle: {
