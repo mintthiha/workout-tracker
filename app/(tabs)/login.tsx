@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, TouchableOpacity } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LoginForm } from "@/components/login/LoginForm";
@@ -9,7 +9,6 @@ import { RegisterForm } from "@/components/login/RegisterForm";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAppContext } from "@/src/context/AppContext";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function LoginScreen() {
 	const router = useRouter();

@@ -46,7 +46,7 @@ export function RestTimerModal({ visible, seconds, onDismiss }: Props) {
 		}, 1000);
 
 		return () => clearInterval(id);
-	}, [visible, seconds]);
+	}, [visible, seconds, onDismiss]);
 
 	const isAlmostDone = remaining <= 5;
 	const timerColor = isAlmostDone ? success : primary;

@@ -30,8 +30,6 @@ export default function ExerciseDetailScreen() {
   const [isCustom, setIsCustom] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  if (isLoaded && !userId) return <Redirect href="/login" />;
-
   const accentColor = useThemeColor({ light: '#3498db', dark: '#3498db' }, 'accent');
   const cardBg = useThemeColor({ light: '#f5f5f5', dark: '#1c1c1e' }, 'card');
   const cardBorder = useThemeColor({ light: '#e0e0e0', dark: '#2c2c2e' }, 'cardBorder');
@@ -78,6 +76,8 @@ export default function ExerciseDetailScreen() {
     () => (exercise ? exerciseService.getExercisePRs(exercise.id, logs) : { bestSet: null, bestVolume: 0 }),
     [exercise, logs]
   );
+
+  if (isLoaded && !userId) return <Redirect href="/login" />;
 
   function handleDelete() {
     Alert.alert('Delete Exercise', `Delete "${exercise?.name}"? This only removes it from your custom list.`, [

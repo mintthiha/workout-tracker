@@ -40,7 +40,6 @@ export default function SettingsScreen() {
 	const router = useRouter();
 	const { preferences, updatePreferences } = useAppContext();
 	const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-	const iconColor = useThemeColor({}, "icon");
 	const textColor = useThemeColor({}, "text");
 
 	function handleBack() {
