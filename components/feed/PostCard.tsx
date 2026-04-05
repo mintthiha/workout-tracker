@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { StyleSheet, View } from "react-native";
 
+import { FeedMedia } from "@/components/feed/FeedMedia";
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Post } from "@/src/types/workout";
@@ -40,7 +41,8 @@ export function PostCard({ post, username, avatarUrl }: Props) {
 					</ThemedText>
 				</View>
 			</View>
-			<ThemedText style={styles.content}>{post.content}</ThemedText>
+			{post.content ? <ThemedText style={styles.content}>{post.content}</ThemedText> : null}
+			{post.media ? <FeedMedia media={post.media} /> : null}
 		</View>
 	);
 }
@@ -73,5 +75,6 @@ const styles = StyleSheet.create({
 	content: {
 		fontSize: 15,
 		lineHeight: 22,
+		marginBottom: 12,
 	},
 });
