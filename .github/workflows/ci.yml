@@ -88,4 +88,4 @@ jobs:
         run: npm ci
 
       - name: Run unit tests if configured
-        run: npm run --if-present test
+        run: npm test -- --runInBand
