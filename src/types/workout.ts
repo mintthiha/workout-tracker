@@ -19,6 +19,7 @@ export interface Post {
 	content: string;
 	media?: PostMedia;
 	createdAt: number; // Unix ms timestamp
+	likeCount?: number;
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { ActivityIndicator, TouchableOpacity } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 
 import FeedScreen from "@/app/(tabs)/explore";
@@ -21,13 +21,30 @@ jest.mock("@/src/lib/userService", () => ({
 
 jest.mock("@/src/services/postService", () => ({
 	createPost: jest.fn(),
+	subscribeToPostLikeStatus: jest.fn(),
 	subscribeToPosts: jest.fn(),
+	togglePostLike: jest.fn(),
 }));
 
 jest.mock("@/components/feed/PostCard", () => ({
-	PostCard: ({ post, username }: { post: { content: string }; username: string }) => {
-		const { Text } = require("react-native");
-		return <Text>{`${username}: ${post.content}`}</Text>;
+	PostCard: ({
+		post,
+		username,
+		liked,
+		onToggleLike,
+	}: {
+		post: { content: string };
+		username: string;
+		liked: boolean;
+		onToggleLike: (post: unknown) => void;
+	}) => {
+		const React = jest.requireActual("react");
+		const { Text, TouchableOpacity } = jest.requireActual("react-native");
+		return React.createElement(
+			TouchableOpacity,
+			{ onPress: () => onToggleLike(post) },
+			React.createElement(Text, null, `${username}: ${post.content}${liked ? " liked" : ""}`),
+		);
 	},
 }));
 
@@ -39,12 +56,15 @@ jest.mock("@/components/feed/CreatePostModal", () => ({
 		visible: boolean;
 		onSubmit: (input: { content: string }) => Promise<void>;
 	}) => {
-		const { Text, TouchableOpacity } = require("react-native");
-		return visible ? (
-			<TouchableOpacity onPress={() => onSubmit({ content: "Fresh post" })}>
-				<Text>Mock submit post</Text>
-			</TouchableOpacity>
-		) : null;
+		const React = jest.requireActual("react");
+		const { Text, TouchableOpacity } = jest.requireActual("react-native");
+		return visible
+			? React.createElement(
+					TouchableOpacity,
+					{ onPress: () => onSubmit({ content: "Fresh post" }) },
+					React.createElement(Text, null, "Mock submit post"),
+				)
+			: null;
 	},
 }));
 
@@ -56,9 +76,12 @@ const { getUserProfile } = jest.requireMock("@/src/lib/userService") as {
 	getUserProfile: jest.Mock;
 };
 
-const { createPost, subscribeToPosts } = jest.requireMock("@/src/services/postService") as {
+const { createPost, subscribeToPostLikeStatus, subscribeToPosts, togglePostLike } =
+	jest.requireMock("@/src/services/postService") as {
 	createPost: jest.Mock;
+	subscribeToPostLikeStatus: jest.Mock;
 	subscribeToPosts: jest.Mock;
+	togglePostLike: jest.Mock;
 };
 
 describe("FeedScreen", () => {
@@ -96,10 +119,17 @@ describe("FeedScreen", () => {
 					type: "text",
 					content: "Existing post",
 					createdAt: Date.now(),
+					likeCount: 0,
 				},
 			]);
 			return jest.fn();
 		});
+		subscribeToPostLikeStatus.mockImplementation(
+			(_postId: string, _userId: string, onData: (liked: boolean) => void) => {
+				onData(false);
+				return jest.fn();
+			},
+		);
 
 		getUserProfile.mockResolvedValue({
 			username: "teammate",
@@ -107,15 +137,14 @@ describe("FeedScreen", () => {
 		});
 		createPost.mockResolvedValue(undefined);
 
-		const { UNSAFE_getAllByType, UNSAFE_queryByType } = render(<FeedScreen />);
+		const { UNSAFE_queryByType } = render(<FeedScreen />);
 
 		await waitFor(() => {
 			expect(screen.getByText("teammate: Existing post")).toBeTruthy();
 		});
 		expect(screen.getByText("1 post")).toBeTruthy();
 
-		const buttons = UNSAFE_getAllByType(TouchableOpacity);
-		fireEvent.press(buttons[0]);
+		fireEvent.press(screen.getByLabelText("Create post"));
 
 		await waitFor(() => {
 			expect(screen.getByText("Mock submit post")).toBeTruthy();
@@ -132,5 +161,47 @@ describe("FeedScreen", () => {
 		});
 
 		expect(UNSAFE_queryByType(ActivityIndicator)).toBeNull();
+	});
+
+	it("toggles a post like using the current user's like state", async () => {
+		useAppContext.mockReturnValue({
+			userId: "user-1",
+			userProfile: { avatarUrl: "https://cdn.example.com/avatar.jpg" },
+			isLoaded: true,
+		});
+
+		subscribeToPosts.mockImplementation((onData: (posts: unknown[]) => void) => {
+			onData([
+				{
+					id: "post-1",
+					userId: "user-2",
+					type: "text",
+					content: "Existing post",
+					createdAt: Date.now(),
+					likeCount: 2,
+				},
+			]);
+			return jest.fn();
+		});
+		subscribeToPostLikeStatus.mockImplementation(
+			(_postId: string, _userId: string, onData: (liked: boolean) => void) => {
+				onData(true);
+				return jest.fn();
+			},
+		);
+		getUserProfile.mockResolvedValue({ username: "teammate" });
+		togglePostLike.mockResolvedValue(undefined);
+
+		render(<FeedScreen />);
+
+		await waitFor(() => {
+			expect(screen.getByText("teammate: Existing post liked")).toBeTruthy();
+		});
+
+		fireEvent.press(screen.getByText("teammate: Existing post liked"));
+
+		await waitFor(() => {
+			expect(togglePostLike).toHaveBeenCalledWith("post-1", "user-1", true);
+		});
 	});
 });

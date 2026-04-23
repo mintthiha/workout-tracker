@@ -1,5 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { FeedMedia } from "@/components/feed/FeedMedia";
 import { ThemedText } from "@/components/themed-text";
@@ -12,14 +13,17 @@ interface Props {
 	post: Post;
 	username: string;
 	avatarUrl?: string;
+	liked?: boolean;
+	onToggleLike?: (post: Post) => void;
 }
 
 /**
  * Renders a single feed post with avatar, username, timestamp, and content.
  */
-export function PostCard({ post, username, avatarUrl }: Props) {
+export function PostCard({ post, username, avatarUrl, liked = false, onToggleLike }: Props) {
 	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
+	const primary = useThemeColor({}, "primary");
 	const secondaryText = useThemeColor({ light: "#666666", dark: "#8e8e93" }, "secondaryText");
 
 	const timestamp = new Date(post.createdAt).toLocaleString(undefined, {
@@ -43,6 +47,29 @@ export function PostCard({ post, username, avatarUrl }: Props) {
 			</View>
 			{post.content ? <ThemedText style={styles.content}>{post.content}</ThemedText> : null}
 			{post.media ? <FeedMedia media={post.media} /> : null}
+			<View style={styles.actions}>
+				<TouchableOpacity
+					style={styles.likeButton}
+					onPress={() => onToggleLike?.(post)}
+					disabled={!onToggleLike}
+					accessibilityRole="button"
+					accessibilityLabel={liked ? "Unlike post" : "Like post"}
+				>
+					<Ionicons
+						name={liked ? "heart" : "heart-outline"}
+						size={22}
+						color={liked ? primary : secondaryText}
+					/>
+					<ThemedText
+						style={[
+							styles.likeCount,
+							{ color: liked ? primary : secondaryText },
+						]}
+					>
+						{post.likeCount ?? 0}
+					</ThemedText>
+				</TouchableOpacity>
+			</View>
 		</View>
 	);
 }
@@ -76,5 +103,21 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		lineHeight: 22,
 		marginBottom: 12,
+	},
+	actions: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginTop: 12,
+	},
+	likeButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		minHeight: 36,
+		paddingRight: 12,
+	},
+	likeCount: {
+		fontSize: 14,
+		fontWeight: "600",
 	},
 });
