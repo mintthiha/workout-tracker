@@ -6,8 +6,9 @@ import {
 	addDoc,
 	collection,
 	doc,
-	increment,
 	getDoc,
+	getDocs,
+	increment,
 	onSnapshot,
 	orderBy,
 	query,
@@ -22,6 +23,11 @@ interface CreatePostInput {
 	userId: string;
 	content: string;
 	media?: PostMedia;
+}
+
+export interface PostLike {
+	userId: string;
+	createdAt: number;
 }
 
 // ─── Create ───────────────────────────────────────────────────────────────────
@@ -85,6 +91,17 @@ export function subscribeToPostLikeStatus(
 		(snap) => onData(snap.exists()),
 		onError,
 	);
+}
+
+export async function getPostLikes(postId: string): Promise<PostLike[]> {
+	const snap = await getDocs(
+		query(collection(db, "posts", postId, "likes"), orderBy("createdAt", "desc")),
+	);
+
+	return snap.docs.map((d) => ({
+		userId: d.id,
+		createdAt: d.data().createdAt?.toMillis?.() ?? Date.now(),
+	}));
 }
 
 // ─── Real-time Feed ───────────────────────────────────────────────────────────

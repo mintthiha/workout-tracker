@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 
 
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { PostCard } from "@/components/feed/PostCard";
+import { PostLikerProfile, PostLikesModal } from "@/components/feed/PostLikesModal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -11,6 +12,7 @@ import { useAppContext } from "@/src/context/AppContext";
 import { getUserProfile } from "@/src/lib/userService";
 import {
 	createPost,
+	getPostLikes,
 	subscribeToPostLikeStatus,
 	subscribeToPosts,
 	togglePostLike,
@@ -25,6 +27,9 @@ export default function FeedScreen() {
 	const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
 	const [loading, setLoading] = useState(true);
 	const [modalVisible, setModalVisible] = useState(false);
+	const [likesModalVisible, setLikesModalVisible] = useState(false);
+	const [likesLoading, setLikesLoading] = useState(false);
+	const [likers, setLikers] = useState<PostLikerProfile[]>([]);
 
 	const fetchedIds = useRef<Set<string>>(new Set());
 
@@ -108,6 +113,37 @@ export default function FeedScreen() {
 		await togglePostLike(post.id, userId, !!likedPosts[post.id]);
 	}
 
+	async function handleViewLikes(post: Post) {
+		setLikesModalVisible(true);
+		setLikesLoading(true);
+		setLikers([]);
+
+		try {
+			const likes = await getPostLikes(post.id);
+			const profiles = await Promise.all(
+				likes.map(async (like) => {
+					const profile = await getUserProfile(like.userId);
+					return profile
+						? {
+								userId: like.userId,
+								username: profile.username,
+								firstName: profile.firstName,
+								lastName: profile.lastName,
+								avatarUrl: profile.avatarUrl,
+							}
+						: null;
+				}),
+			);
+
+			setLikers(profiles.filter((profile): profile is PostLikerProfile => !!profile));
+		} catch (error) {
+			console.error("Post likes error:", error);
+			setLikers([]);
+		} finally {
+			setLikesLoading(false);
+		}
+	}
+
 	if (!isLoaded) {
 		return (
 			<ThemedView style={styles.centered}>
@@ -152,6 +188,7 @@ export default function FeedScreen() {
 						avatarUrl={avatars[item.userId]}
 						liked={!!likedPosts[item.id]}
 						onToggleLike={handleToggleLike}
+						onViewLikes={handleViewLikes}
 					/>
 				)}
 				contentContainerStyle={styles.list}
@@ -192,6 +229,13 @@ export default function FeedScreen() {
 				visible={modalVisible}
 				onClose={() => setModalVisible(false)}
 				onSubmit={handleCreatePost}
+			/>
+
+			<PostLikesModal
+				visible={likesModalVisible}
+				loading={likesLoading}
+				likers={likers}
+				onClose={() => setLikesModalVisible(false)}
 			/>
 		</ThemedView>
 	);

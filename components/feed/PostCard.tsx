@@ -15,12 +15,20 @@ interface Props {
 	avatarUrl?: string;
 	liked?: boolean;
 	onToggleLike?: (post: Post) => void;
+	onViewLikes?: (post: Post) => void;
 }
 
 /**
  * Renders a single feed post with avatar, username, timestamp, and content.
  */
-export function PostCard({ post, username, avatarUrl, liked = false, onToggleLike }: Props) {
+export function PostCard({
+	post,
+	username,
+	avatarUrl,
+	liked = false,
+	onToggleLike,
+	onViewLikes,
+}: Props) {
 	const cardBg = useThemeColor({ light: "#f5f5f5", dark: "#1c1c1e" }, "card");
 	const cardBorder = useThemeColor({ light: "#e0e0e0", dark: "#2c2c2e" }, "cardBorder");
 	const primary = useThemeColor({}, "primary");
@@ -60,6 +68,14 @@ export function PostCard({ post, username, avatarUrl, liked = false, onToggleLik
 						size={22}
 						color={liked ? primary : secondaryText}
 					/>
+				</TouchableOpacity>
+				<TouchableOpacity
+					style={styles.likeCountButton}
+					onPress={() => onViewLikes?.(post)}
+					disabled={!onViewLikes}
+					accessibilityRole="button"
+					accessibilityLabel="View post likes"
+				>
 					<ThemedText
 						style={[
 							styles.likeCount,
@@ -112,8 +128,12 @@ const styles = StyleSheet.create({
 	likeButton: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 6,
 		minHeight: 36,
+		paddingRight: 6,
+	},
+	likeCountButton: {
+		minHeight: 36,
+		justifyContent: "center",
 		paddingRight: 12,
 	},
 	likeCount: {

@@ -48,6 +48,16 @@ describe("PostCard", () => {
 		expect(onToggleLike).toHaveBeenCalledWith(post);
 	});
 
+	it("calls the view likes handler from the like count", () => {
+		const onViewLikes = jest.fn();
+
+		render(<PostCard post={post} username="lifter" onViewLikes={onViewLikes} />);
+
+		fireEvent.press(screen.getByLabelText("View post likes"));
+
+		expect(onViewLikes).toHaveBeenCalledWith(post);
+	});
+
 	it("shows the unlike action when the user has liked the post", () => {
 		render(<PostCard post={post} username="lifter" liked />);
 
