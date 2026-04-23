@@ -4,12 +4,19 @@ import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 
 
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { PostCard } from "@/components/feed/PostCard";
+import { PostLikerProfile, PostLikesModal } from "@/components/feed/PostLikesModal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
 import { getUserProfile } from "@/src/lib/userService";
-import { createPost, subscribeToPosts } from "@/src/services/postService";
+import {
+	createPost,
+	getPostLikes,
+	subscribeToPostLikeStatus,
+	subscribeToPosts,
+	togglePostLike,
+} from "@/src/services/postService";
 import { Post, PostMedia } from "@/src/types/workout";
 
 export default function FeedScreen() {
@@ -17,8 +24,12 @@ export default function FeedScreen() {
 	const [posts, setPosts] = useState<Post[]>([]);
 	const [usernames, setUsernames] = useState<Record<string, string>>({});
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
+	const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
 	const [loading, setLoading] = useState(true);
 	const [modalVisible, setModalVisible] = useState(false);
+	const [likesModalVisible, setLikesModalVisible] = useState(false);
+	const [likesLoading, setLikesLoading] = useState(false);
+	const [likers, setLikers] = useState<PostLikerProfile[]>([]);
 
 	const fetchedIds = useRef<Set<string>>(new Set());
 
@@ -68,9 +79,69 @@ export default function FeedScreen() {
 		return unsubscribe;
 	}, [userId]);
 
+	useEffect(() => {
+		if (!userId || posts.length === 0) {
+			setLikedPosts({});
+			return;
+		}
+
+		const unsubscribes = posts.map((post) =>
+			subscribeToPostLikeStatus(
+				post.id,
+				userId,
+				(liked) => {
+					setLikedPosts((prev) => ({ ...prev, [post.id]: liked }));
+				},
+				(error) => {
+					console.error("Post like status error:", error);
+				},
+			),
+		);
+
+		return () => {
+			unsubscribes.forEach((unsubscribe) => unsubscribe());
+		};
+	}, [posts, userId]);
+
 	async function handleCreatePost(input: { content: string; media?: PostMedia }) {
 		if (!userId) return;
 		await createPost({ userId, content: input.content, media: input.media });
+	}
+
+	async function handleToggleLike(post: Post) {
+		if (!userId) return;
+		await togglePostLike(post.id, userId, !!likedPosts[post.id]);
+	}
+
+	async function handleViewLikes(post: Post) {
+		setLikesModalVisible(true);
+		setLikesLoading(true);
+		setLikers([]);
+
+		try {
+			const likes = await getPostLikes(post.id);
+			const profiles = await Promise.all(
+				likes.map(async (like) => {
+					const profile = await getUserProfile(like.userId);
+					return profile
+						? {
+								userId: like.userId,
+								username: profile.username,
+								firstName: profile.firstName,
+								lastName: profile.lastName,
+								avatarUrl: profile.avatarUrl,
+							}
+						: null;
+				}),
+			);
+
+			setLikers(profiles.filter((profile): profile is PostLikerProfile => !!profile));
+		} catch (error) {
+			console.error("Post likes error:", error);
+			setLikers([]);
+		} finally {
+			setLikesLoading(false);
+		}
 	}
 
 	if (!isLoaded) {
@@ -115,6 +186,9 @@ export default function FeedScreen() {
 						post={item}
 						username={usernames[item.userId] ?? "..."}
 						avatarUrl={avatars[item.userId]}
+						liked={!!likedPosts[item.id]}
+						onToggleLike={handleToggleLike}
+						onViewLikes={handleViewLikes}
 					/>
 				)}
 				contentContainerStyle={styles.list}
@@ -145,6 +219,8 @@ export default function FeedScreen() {
 			<TouchableOpacity
 				style={[styles.fab, { backgroundColor: primary }]}
 				onPress={() => setModalVisible(true)}
+				accessibilityRole="button"
+				accessibilityLabel="Create post"
 			>
 				<Ionicons name="add" size={28} color="#fff" />
 			</TouchableOpacity>
@@ -153,6 +229,13 @@ export default function FeedScreen() {
 				visible={modalVisible}
 				onClose={() => setModalVisible(false)}
 				onSubmit={handleCreatePost}
+			/>
+
+			<PostLikesModal
+				visible={likesModalVisible}
+				loading={likesLoading}
+				likers={likers}
+				onClose={() => setLikesModalVisible(false)}
 			/>
 		</ThemedView>
 	);
