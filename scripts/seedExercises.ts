@@ -22,7 +22,6 @@ import { ServiceAccount } from 'firebase-admin';
 
 let serviceAccount: ServiceAccount;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   serviceAccount = require('./serviceAccountKey.json') as ServiceAccount;
 } catch {
   console.error(
