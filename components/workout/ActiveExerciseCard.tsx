@@ -3,10 +3,11 @@ import { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { SetRow } from "@/components/workout/SetRow";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useWorkout } from "@/src/context/WorkoutContext";
-import { ActiveExercise } from "@/src/types/workout";
+import { ActiveExercise, Exercise } from "@/src/types/workout";
 
 interface Props {
 	exercise: ActiveExercise;
@@ -15,8 +16,9 @@ interface Props {
 }
 
 export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Props) {
-	const { updateSet, toggleSetComplete, addSet, removeSet, removeExercise, setSetType, updateExerciseNote } = useWorkout();
+	const { updateSet, toggleSetComplete, addSet, removeSet, removeExercise, replaceExercise, setSetType, updateExerciseNote } = useWorkout();
 	const [isNoteVisible, setIsNoteVisible] = useState(!!exercise.notes);
+	const [showReplace, setShowReplace] = useState(false);
 
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
@@ -42,10 +44,7 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 			[
 				{
 					text: "Replace Exercise",
-					onPress: () => {
-						// TODO: Open modal to select new exercise and call replaceExercise(..., keepSets)
-						Alert.alert("Notice", "Replace Exercise modal placeholder");
-					},
+					onPress: () => setShowReplace(true),
 				},
 				{
 					text: isNoteVisible ? "Hide Note" : "Add Note",
@@ -150,6 +149,13 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 					<ThemedText style={[styles.addSetText, { color: primary }]}>Add Set</ThemedText>
 				</TouchableOpacity>
 			</View>
+
+			<ExercisePickerSheet
+				visible={showReplace}
+				title="Replace Exercise"
+				onSelect={(exercise: Exercise) => replaceExercise(exerciseIdx, exercise)}
+				onDismiss={() => setShowReplace(false)}
+			/>
 		</View>
 	);
 }

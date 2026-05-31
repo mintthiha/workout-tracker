@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { useAppContext } from "@/src/context/AppContext";
 import * as workoutService from "@/src/services/workoutService";
 import * as workoutStorage from "@/src/storage/workoutStorage";
-import { ActiveSet, ActiveWorkoutSession, Exercise, LoggedExercise, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
+import { ActiveExercise, ActiveSet, ActiveWorkoutSession, Exercise, LoggedExercise, SetType, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
@@ -27,8 +27,11 @@ interface WorkoutContextValue {
 	toggleSetComplete: (exerciseIdx: number, setIdx: number) => void;
 	addSet: (exerciseIdx: number) => void;
 	removeSet: (exerciseIdx: number, setIdx: number) => void;
+	setSetType: (exerciseIdx: number, setIdx: number, type: SetType) => void;
 	replaceExercise: (exerciseIdx: number, newExercise: Exercise) => void;
 	removeExercise: (exerciseIdx: number) => void;
+	addExercise: (exercise: Exercise) => void;
+	updateExerciseNote: (exerciseIdx: number, note: string) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
@@ -316,6 +319,32 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 		[setAndPersist],
 	);
 
+	const addExercise = useCallback(
+		(exercise: Exercise) => {
+			setAndPersist((prev) => {
+				const newExercise: ActiveExercise = {
+					id: workoutService.generateId(),
+					exerciseId: exercise.id,
+					exerciseName: exercise.name,
+					restSeconds: 90,
+					sets: [
+						{
+							id: workoutService.generateId(),
+							type: "normal" as SetType,
+							targetReps: 0,
+							targetWeight: 0,
+							actualReps: 0,
+							actualWeight: 0,
+							completed: false,
+						},
+					],
+				};
+				return { ...prev, exercises: [...prev.exercises, newExercise] };
+			});
+		},
+		[setAndPersist],
+	);
+
 	const removeExercise = useCallback(
 		(exerciseIdx: number) => {
 			setAndPersist((prev) => ({
@@ -355,6 +384,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 				addSet,
 				removeSet,
 				replaceExercise,
+				addExercise,
 				removeExercise,
 				updateExerciseNote,
 			}}
