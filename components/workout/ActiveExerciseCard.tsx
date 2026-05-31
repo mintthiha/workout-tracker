@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { SetRow } from "@/components/workout/SetRow";
@@ -14,13 +15,17 @@ interface Props {
 }
 
 export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Props) {
-	const { updateSet, toggleSetComplete, addSet, removeSet } = useWorkout();
+	const { updateSet, toggleSetComplete, addSet, removeSet, removeExercise, setSetType, updateExerciseNote } = useWorkout();
+	const [isNoteVisible, setIsNoteVisible] = useState(!!exercise.notes);
 
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
 	const secondaryText = useThemeColor({}, "secondaryText");
 	const primary = useThemeColor({}, "primary");
 	const accentTint = useThemeColor({}, "accentTint");
+	const danger = useThemeColor({}, "danger");
+	const inputBg = useThemeColor({}, "inputBg");
+	const text = useThemeColor({}, "text");
 
 	function handleToggleComplete(setIdx: number) {
 		const wasCompleted = exercise.sets[setIdx]?.completed;
@@ -28,6 +33,42 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 		if (!wasCompleted) {
 			onSetCompleted(exercise.restSeconds);
 		}
+	}
+
+	function handleOptionsPress() {
+		Alert.alert(
+			exercise.exerciseName,
+			"Exercise Options",
+			[
+				{
+					text: "Replace Exercise",
+					onPress: () => {
+						// TODO: Open modal to select new exercise and call replaceExercise(..., keepSets)
+						Alert.alert("Notice", "Replace Exercise modal placeholder");
+					},
+				},
+				{
+					text: isNoteVisible ? "Hide Note" : "Add Note",
+					onPress: () => setIsNoteVisible(!isNoteVisible),
+				},
+				{
+					text: "Delete Exercise",
+					style: "destructive",
+					onPress: () => {
+						Alert.alert(
+							"Remove Exercise?",
+							`Are you sure you want to remove ${exercise.exerciseName} from this workout?`,
+							[
+								{ text: "Cancel", style: "cancel" },
+								{ text: "Remove", style: "destructive", onPress: () => removeExercise(exerciseIdx) },
+							],
+						);
+					},
+				},
+				{ text: "Cancel", style: "cancel" },
+			],
+			{ cancelable: true }
+		);
 	}
 
 	return (
@@ -41,8 +82,29 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 			<View style={[styles.accentBar, { backgroundColor: primary }]} />
 
 			<View style={styles.inner}>
-				{/* Exercise name */}
-				<ThemedText style={styles.exerciseName}>{exercise.exerciseName}</ThemedText>
+				{/* Exercise name and actions */}
+				<View style={styles.titleRow}>
+					<ThemedText style={styles.exerciseName}>{exercise.exerciseName}</ThemedText>
+					<View style={styles.actionIcons}>
+						<TouchableOpacity onPress={handleOptionsPress} style={styles.iconBtn}>
+							<Ionicons name="ellipsis-horizontal" size={22} color={secondaryText} />
+						</TouchableOpacity>
+					</View>
+				</View>
+
+				{/* Note Input */}
+				{isNoteVisible && (
+					<View style={styles.noteContainer}>
+						<TextInput
+							style={[styles.noteInput, { backgroundColor: inputBg, color: text, borderColor: glassBorder }]}
+							placeholder="Add a note for this exercise..."
+							placeholderTextColor={secondaryText}
+							value={exercise.notes || ""}
+							onChangeText={(t) => updateExerciseNote(exerciseIdx, t)}
+							multiline
+						/>
+					</View>
+				)}
 
 				{/* Column headers */}
 				<View style={styles.headerRow}>
@@ -64,7 +126,7 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 				{/* Set rows */}
 				{exercise.sets.map((set, setIdx) => (
 					<SetRow
-						key={setIdx}
+						key={set.id}
 						set={set}
 						setNumber={setIdx + 1}
 						onWeightChange={(v) => updateSet(exerciseIdx, setIdx, "actualWeight", v)}
@@ -75,6 +137,7 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 								removeSet(exerciseIdx, setIdx);
 							}
 						}}
+						onChangeType={(type) => setSetType(exerciseIdx, setIdx, type)}
 					/>
 				))}
 
@@ -119,7 +182,30 @@ const styles = StyleSheet.create({
 		fontSize: 17,
 		fontWeight: "700",
 		letterSpacing: -0.3,
+	},
+	titleRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
 		marginBottom: 12,
+	},
+	actionIcons: {
+		flexDirection: "row",
+		gap: 12,
+	},
+	iconBtn: {
+		padding: 4,
+	},
+	noteContainer: {
+		marginBottom: 12,
+	},
+	noteInput: {
+		minHeight: 40,
+		borderRadius: 10,
+		borderWidth: 1,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		fontSize: 14,
 	},
 	headerRow: {
 		flexDirection: "row",

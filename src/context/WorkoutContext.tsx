@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { useAppContext } from "@/src/context/AppContext";
 import * as workoutService from "@/src/services/workoutService";
 import * as workoutStorage from "@/src/storage/workoutStorage";
-import { ActiveSet, ActiveWorkoutSession, LoggedExercise, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
+import { ActiveSet, ActiveWorkoutSession, Exercise, LoggedExercise, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
@@ -27,6 +27,8 @@ interface WorkoutContextValue {
 	toggleSetComplete: (exerciseIdx: number, setIdx: number) => void;
 	addSet: (exerciseIdx: number) => void;
 	removeSet: (exerciseIdx: number, setIdx: number) => void;
+	replaceExercise: (exerciseIdx: number, newExercise: Exercise) => void;
+	removeExercise: (exerciseIdx: number) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
@@ -82,10 +84,12 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 				templateName: template.name,
 				startedAt: Date.now(),
 				exercises: template.exercises.map((te) => ({
+					id: workoutService.generateId(),
 					exerciseId: te.exerciseId,
 					exerciseName: te.exerciseName,
 					restSeconds: te.restSeconds,
 					sets: te.sets.map((s) => ({
+						id: workoutService.generateId(),
 						targetReps: s.targetReps,
 						targetWeight: s.targetWeight,
 						actualReps: s.targetReps,
@@ -128,7 +132,15 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 				const loggedEx: LoggedExercise = {
 					exerciseId: ex.exerciseId,
 					exerciseName: ex.exerciseName,
-					sets: setsWithPR,
+					sets: setsWithPR.map(s => ({
+						type: s.type || "normal",
+						targetReps: s.targetReps,
+						targetWeight: s.targetWeight,
+						actualReps: s.actualReps,
+						actualWeight: s.actualWeight,
+						completed: s.completed,
+						isPersonalRecord: s.isPersonalRecord,
+					})),
 				};
 				// Avoid sending undefined to Firestore for optional fields
 				if (ex.notes) loggedEx.notes = ex.notes;
@@ -215,6 +227,25 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 		[setAndPersist],
 	);
 
+	const setSetType = useCallback(
+		(exerciseIdx: number, setIdx: number, type: SetType) => {
+			setAndPersist((prev) => ({
+				...prev,
+				exercises: prev.exercises.map((ex, ei) =>
+					ei !== exerciseIdx
+						? ex
+						: {
+								...ex,
+								sets: ex.sets.map((s, si) =>
+									si !== setIdx ? s : { ...s, type },
+								),
+							},
+				),
+			}));
+		},
+		[setAndPersist],
+	);
+
 	const addSet = useCallback(
 		(exerciseIdx: number) => {
 			setAndPersist((prev) => ({
@@ -223,8 +254,10 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 					if (ei !== exerciseIdx) return ex;
 					const lastSet = ex.sets[ex.sets.length - 1];
 					const newSet: ActiveSet = lastSet
-						? { ...lastSet, completed: false }
+						? { ...lastSet, id: workoutService.generateId(), completed: false }
 						: {
+								id: workoutService.generateId(),
+								type: "normal",
 								targetReps: 8,
 								targetWeight: 0,
 								actualReps: 8,
@@ -252,6 +285,59 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 		[setAndPersist],
 	);
 
+	const replaceExercise = useCallback(
+		(exerciseIdx: number, newExercise: Exercise, keepSets: boolean = false) => {
+			setAndPersist((prev) => {
+				const currentExercise = prev.exercises[exerciseIdx];
+				if (!currentExercise) return prev;
+				
+				const updatedExercise: ActiveExercise = {
+					...currentExercise,
+					id: workoutService.generateId(),
+					exerciseId: newExercise.id,
+					exerciseName: newExercise.name,
+					sets: keepSets ? currentExercise.sets : currentExercise.sets.map(s => ({
+						...s,
+						id: workoutService.generateId(),
+						completed: false,
+						actualWeight: 0,
+						actualReps: 0,
+					})),
+				};
+				
+				return {
+					...prev,
+					exercises: prev.exercises.map((ex, ei) => 
+						ei === exerciseIdx ? updatedExercise : ex
+					),
+				};
+			});
+		},
+		[setAndPersist],
+	);
+
+	const removeExercise = useCallback(
+		(exerciseIdx: number) => {
+			setAndPersist((prev) => ({
+				...prev,
+				exercises: prev.exercises.filter((_, ei) => ei !== exerciseIdx),
+			}));
+		},
+		[setAndPersist],
+	);
+
+	const updateExerciseNote = useCallback(
+		(exerciseIdx: number, note: string) => {
+			setAndPersist((prev) => ({
+				...prev,
+				exercises: prev.exercises.map((ex, ei) =>
+					ei !== exerciseIdx ? ex : { ...ex, notes: note },
+				),
+			}));
+		},
+		[setAndPersist],
+	);
+
 	// ─── Render ───────────────────────────────────────────────────────────────
 
 	return (
@@ -265,8 +351,12 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 				clearCompletedLog,
 				updateSet,
 				toggleSetComplete,
+				setSetType,
 				addSet,
 				removeSet,
+				replaceExercise,
+				removeExercise,
+				updateExerciseNote,
 			}}
 		>
 			{children}

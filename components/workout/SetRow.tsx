@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { useRef } from "react";
+import { Alert, Animated, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { ActiveSet } from "@/src/types/workout";
+import { ActiveSet, SetType } from "@/src/types/workout";
 
 interface Props {
 	set: ActiveSet;
@@ -12,6 +13,7 @@ interface Props {
 	onRepsChange: (value: number) => void;
 	onToggleComplete: () => void;
 	onRemove: () => void;
+	onChangeType?: (type: SetType) => void;
 }
 
 export function SetRow({
@@ -21,6 +23,7 @@ export function SetRow({
 	onRepsChange,
 	onToggleComplete,
 	onRemove,
+	onChangeType,
 }: Props) {
 	const textColor = useThemeColor({}, "text");
 	const secondaryText = useThemeColor({}, "secondaryText");
@@ -30,10 +33,66 @@ export function SetRow({
 	const completedInputBg = useThemeColor({}, "completedInputBg");
 	const completedBorder = useThemeColor({}, "completedBorder");
 	const success = useThemeColor({}, "success");
+	
+	// Badge colors
+	const warmupColor = "#3b82f6";
+	const failureColor = "#ef4444";
+	const dropColor = "#f97316";
 
 	const rowBg = set.completed ? completedRowBg : "transparent";
 	const currentInputBg = set.completed ? completedInputBg : inputBg;
 	const currentInputBorder = set.completed ? completedBorder : "transparent";
+
+	const scaleAnim = useRef(new Animated.Value(1)).current;
+
+	const handlePressIn = () => {
+		Animated.spring(scaleAnim, {
+			toValue: 0.85,
+			useNativeDriver: true,
+		}).start();
+	};
+
+	const handlePressOut = () => {
+		Animated.spring(scaleAnim, {
+			toValue: 1,
+			friction: 3,
+			tension: 40,
+			useNativeDriver: true,
+		}).start();
+	};
+
+	const handleToggle = () => {
+		onToggleComplete();
+	};
+
+	const handleBadgePress = () => {
+		if (!onChangeType) return;
+		Alert.alert("Set Type", "Choose a classification for this set:", [
+			{ text: "Normal", onPress: () => onChangeType("normal") },
+			{ text: "Warm-up", onPress: () => onChangeType("warmup") },
+			{ text: "Drop Set", onPress: () => onChangeType("drop") },
+			{ text: "Failure", onPress: () => onChangeType("failure") },
+			{ text: "Cancel", style: "cancel" },
+		]);
+	};
+
+	let badgeContent = String(setNumber);
+	let badgeColor = "transparent";
+	let badgeTextColor = secondaryText;
+	
+	if (set.type === "warmup") {
+		badgeContent = "W";
+		badgeColor = warmupColor + "20"; // 20% opacity
+		badgeTextColor = warmupColor;
+	} else if (set.type === "failure") {
+		badgeContent = "F";
+		badgeColor = failureColor + "20";
+		badgeTextColor = failureColor;
+	} else if (set.type === "drop") {
+		badgeContent = "D";
+		badgeColor = dropColor + "20";
+		badgeTextColor = dropColor;
+	}
 
 	return (
 		<View
@@ -42,9 +101,15 @@ export function SetRow({
 				{ backgroundColor: rowBg, borderTopColor: glassDivider },
 			]}
 		>
-			{/* Set number — long press to remove */}
-			<TouchableOpacity onLongPress={onRemove} style={styles.setNumCell}>
-				<ThemedText style={[styles.setNum, { color: secondaryText }]}>{setNumber}</ThemedText>
+			{/* Type Badge / Set number — long press to remove */}
+			<TouchableOpacity 
+				onPress={handleBadgePress} 
+				onLongPress={onRemove} 
+				style={styles.setNumCell}
+			>
+				<View style={[styles.badge, { backgroundColor: badgeColor }]}>
+					<ThemedText style={[styles.setNum, { color: badgeTextColor }]}>{badgeContent}</ThemedText>
+				</View>
 			</TouchableOpacity>
 
 			{/* Previous target */}
@@ -70,10 +135,15 @@ export function SetRow({
 						const n = parseFloat(t);
 						onWeightChange(isNaN(n) ? 0 : n);
 					}}
+					onFocus={() => {
+						if (set.actualWeight === 0 && set.targetWeight > 0) {
+							onWeightChange(set.targetWeight);
+						}
+					}}
 					keyboardType="numeric"
 					returnKeyType="done"
 					maxLength={6}
-					placeholder="0"
+					placeholder={set.targetWeight > 0 ? String(set.targetWeight) : "0"}
 					placeholderTextColor={secondaryText}
 					selectTextOnFocus
 				/>
@@ -95,27 +165,39 @@ export function SetRow({
 						const n = parseInt(t, 10);
 						onRepsChange(isNaN(n) ? 0 : n);
 					}}
+					onFocus={() => {
+						if (set.actualReps === 0 && set.targetReps > 0) {
+							onRepsChange(set.targetReps);
+						}
+					}}
 					keyboardType="numeric"
 					returnKeyType="done"
 					maxLength={3}
-					placeholder="0"
+					placeholder={set.targetReps > 0 ? String(set.targetReps) : "0"}
 					placeholderTextColor={secondaryText}
 					selectTextOnFocus
 				/>
 			</View>
 
 			{/* Checkmark */}
-			<TouchableOpacity style={styles.checkCell} onPress={onToggleComplete}>
-				<View
+			<TouchableOpacity 
+				style={styles.checkCell} 
+				onPress={handleToggle}
+				onPressIn={handlePressIn}
+				onPressOut={handlePressOut}
+				activeOpacity={1}
+			>
+				<Animated.View
 					style={[
 						styles.checkBox,
+						{ transform: [{ scale: scaleAnim }] },
 						set.completed
 							? { backgroundColor: success, borderColor: success }
 							: { borderColor: secondaryText },
 					]}
 				>
 					{set.completed && <Ionicons name="checkmark" size={13} color="#fff" />}
-				</View>
+				</Animated.View>
 			</TouchableOpacity>
 		</View>
 	);
@@ -134,10 +216,18 @@ const styles = StyleSheet.create({
 	setNumCell: {
 		width: 36,
 		alignItems: "center",
+		justifyContent: "center",
+	},
+	badge: {
+		width: 24,
+		height: 24,
+		borderRadius: 6,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	setNum: {
-		fontSize: 14,
-		fontWeight: "600",
+		fontSize: 13,
+		fontWeight: "700",
 		fontVariant: ["tabular-nums"],
 	},
 	prevCell: {

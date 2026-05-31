@@ -24,6 +24,8 @@ export interface Post {
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
+export type SetType = "normal" | "warmup" | "failure" | "drop";
+
 export type MuscleGroup =
 	| "chest"
 	| "back"
@@ -49,6 +51,7 @@ export interface Exercise {
 // ─── Templates ────────────────────────────────────────────────────────────────
 
 export interface TemplateSet {
+	type?: SetType;
 	targetReps: number;
 	targetWeight: number; // stored in lbs
 }
@@ -73,6 +76,8 @@ export interface WorkoutTemplate {
 // ─── Active Session ───────────────────────────────────────────────────────────
 
 export interface ActiveSet {
+	id: string;
+	type?: SetType;
 	targetReps: number;
 	targetWeight: number;
 	actualReps: number;
@@ -81,6 +86,7 @@ export interface ActiveSet {
 }
 
 export interface ActiveExercise {
+	id: string;
 	exerciseId: string;
 	exerciseName: string;
 	sets: ActiveSet[];
@@ -98,6 +104,7 @@ export interface ActiveWorkoutSession {
 // ─── Workout Logs (History) ───────────────────────────────────────────────────
 
 export interface LoggedSet {
+	type?: SetType;
 	targetReps: number;
 	targetWeight: number;
 	actualReps: number;

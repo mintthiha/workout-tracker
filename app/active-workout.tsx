@@ -109,7 +109,7 @@ export default function ActiveWorkoutScreen() {
 			>
 				{session.exercises.map((exercise, idx) => (
 					<ActiveExerciseCard
-						key={exercise.exerciseId}
+						key={exercise.id}
 						exercise={exercise}
 						exerciseIdx={idx}
 						onSetCompleted={handleSetCompleted}
