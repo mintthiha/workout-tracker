@@ -6,13 +6,13 @@ import { AppModal } from "@/components/ui/AppModal";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { SetType } from "@/src/types/workout";
 
-const SET_TYPE_OPTIONS: Array<{
+const SET_TYPE_OPTIONS: {
 	type: SetType;
 	label: string;
 	description: string;
 	icon: string;
 	color: string;
-}> = [
+}[] = [
 	{
 		type: "normal",
 		label: "Normal",

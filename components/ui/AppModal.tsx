@@ -1,6 +1,5 @@
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface Props {
@@ -10,7 +9,6 @@ interface Props {
 }
 
 export function AppModal({ visible, onDismiss, children }: Props) {
-	const scheme = useColorScheme();
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
 

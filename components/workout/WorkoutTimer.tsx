@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleProp, StyleSheet, TextStyle } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
-
-import { StyleProp, TextStyle } from "react-native";
 
 interface Props {
 	startedAt: number; // Unix ms

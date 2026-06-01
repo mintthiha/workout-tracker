@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { AlertModal } from "@/components/ui/AlertModal";

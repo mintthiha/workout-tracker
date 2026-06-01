@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface Props {
@@ -19,7 +18,6 @@ function formatCountdown(s: number): string {
 
 export function RestTimerModal({ visible, seconds, onDismiss }: Props) {
 	const [remaining, setRemaining] = useState(seconds);
-	const scheme = useColorScheme();
 
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");

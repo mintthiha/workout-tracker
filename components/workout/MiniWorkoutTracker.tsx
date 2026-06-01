@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { BottomTabBarHeightContext } from "@react-navigation/bottom-tabs";
 import { router } from "expo-router";
-import React from "react";
+import React, { useContext } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -13,12 +13,8 @@ import { useWorkout } from "@/src/context/WorkoutContext";
 export function MiniWorkoutTracker() {
 	const { session } = useWorkout();
 	const insets = useSafeAreaInsets();
-	let tabBarHeight = 0;
-	try {
-		tabBarHeight = useBottomTabBarHeight();
-	} catch {
-		tabBarHeight = insets.bottom + 50; // Fallback if not within Tab context
-	}
+	const tabHeight = useContext(BottomTabBarHeightContext);
+	const tabBarHeight = tabHeight ?? (insets.bottom + 50);
 
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
