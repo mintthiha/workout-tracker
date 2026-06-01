@@ -1,5 +1,4 @@
-import { BlurView } from "expo-blur";
-import { Modal, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -23,24 +22,14 @@ export function AppModal({ visible, onDismiss, children }: Props) {
 					activeOpacity={1}
 					onPress={onDismiss}
 				/>
-				{Platform.OS === "ios" ? (
-					<BlurView
-						intensity={60}
-						tint={scheme === "dark" ? "dark" : "light"}
-						style={styles.card}
-					>
-						{children}
-					</BlurView>
-				) : (
-					<View
-						style={[
-							styles.card,
-							{ backgroundColor: glassCard, borderColor: glassBorder, borderWidth: 1 },
-						]}
-					>
-						{children}
-					</View>
-				)}
+				<View
+					style={[
+						styles.card,
+						{ backgroundColor: glassCard, borderColor: glassBorder, borderWidth: 1 },
+					]}
+				>
+					{children}
+				</View>
 			</View>
 		</Modal>
 	);

@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-nat
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { AlertModal } from "@/components/ui/AlertModal";
 import { ExerciseListItem } from "@/components/workout/ExerciseListItem";
 import { MuscleGroupColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -19,7 +20,12 @@ export default function TemplateDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const { userId } = useAppContext();
 	const [template, setTemplate] = useState<WorkoutTemplate | null>(null);
-	const { startWorkout } = useWorkout();
+	const { startWorkout, session } = useWorkout();
+	const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; body: string; onDismiss?: () => void }>({
+		visible: false,
+		title: "",
+		body: "",
+	});
 
 	const scheme = useColorScheme();
 	const muscleColorMap = MuscleGroupColors[scheme];
@@ -29,6 +35,8 @@ export default function TemplateDetailScreen() {
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
 	const accentTint = useThemeColor({}, "accentTint");
+	const danger = useThemeColor({}, "danger");
+	const dangerTint = useThemeColor({}, "dangerTint");
 
 	useEffect(() => {
 		if (!id || !userId) return;
@@ -37,17 +45,23 @@ export default function TemplateDetailScreen() {
 			id,
 			(t) => {
 				if (!t) {
-					Alert.alert("Not Found", "This template no longer exists.", [
-						{ text: "OK", onPress: () => router.back() },
-					]);
+					setAlertConfig({
+						visible: true,
+						title: "Not Found",
+						body: "This template no longer exists.",
+						onDismiss: () => router.back(),
+					});
 					return;
 				}
 				setTemplate(t);
 			},
 			() => {
-				Alert.alert("Error", "Failed to load template.", [
-					{ text: "OK", onPress: () => router.back() },
-				]);
+				setAlertConfig({
+					visible: true,
+					title: "Error",
+					body: "Failed to load template.",
+					onDismiss: () => router.back(),
+				});
 			},
 		);
 		return unsubscribe;
@@ -171,16 +185,31 @@ export default function TemplateDetailScreen() {
 			</ScrollView>
 
 			{/* Sticky start button */}
-			<View style={styles.stickyFooter}>
-				<TouchableOpacity
-					style={[styles.startBtn, { backgroundColor: primary }]}
-					onPress={handleStartWorkout}
-					activeOpacity={0.85}
-				>
-					<Ionicons name="play" size={18} color="#fff" />
-					<ThemedText style={styles.startBtnText}>Start Workout</ThemedText>
-				</TouchableOpacity>
-			</View>
+			{!session && (
+				<View style={styles.stickyFooter}>
+					<TouchableOpacity
+						style={[styles.startBtn, { backgroundColor: primary }]}
+						onPress={handleStartWorkout}
+						activeOpacity={0.85}
+					>
+						<Ionicons name="play" size={18} color="#fff" />
+						<ThemedText style={styles.startBtnText}>Start Workout</ThemedText>
+					</TouchableOpacity>
+				</View>
+			)}
+
+			<AlertModal
+				visible={alertConfig.visible}
+				onDismiss={() => {
+					setAlertConfig((prev) => ({ ...prev, visible: false }));
+					if (alertConfig.onDismiss) alertConfig.onDismiss();
+				}}
+				title={alertConfig.title}
+				body={alertConfig.body}
+				icon="alert-circle-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+			/>
 		</ThemedView>
 	);
 }

@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-nat
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { AlertModal } from "@/components/ui/AlertModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ActiveExerciseCard } from "@/components/workout/ActiveExerciseCard";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
@@ -22,6 +23,11 @@ export default function ActiveWorkoutScreen() {
 	const [cancelModalVisible, setCancelModalVisible] = useState(false);
 	const [incompleteModalVisible, setIncompleteModalVisible] = useState(false);
 	const [showAddExercise, setShowAddExercise] = useState(false);
+	const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; body: string }>({
+		visible: false,
+		title: "",
+		body: "",
+	});
 
 	const primary = useThemeColor({}, "primary");
 	const danger = useThemeColor({}, "danger");
@@ -45,10 +51,11 @@ export default function ActiveWorkoutScreen() {
 	async function doFinish() {
 		const hasValidData = session.exercises.some((ex) => ex.sets.some((s) => s.actualReps > 0));
 		if (!hasValidData) {
-			Alert.alert(
-				"No Data Entered",
-				"Please enter reps for at least one set before finishing.",
-			);
+			setAlertConfig({
+				visible: true,
+				title: "No Data Entered",
+				body: "Please enter reps for at least one set before finishing.",
+			});
 			return;
 		}
 		setFinishing(true);
@@ -56,7 +63,11 @@ export default function ActiveWorkoutScreen() {
 			await finishWorkout();
 			router.replace("/workout-complete");
 		} catch {
-			Alert.alert("Error", "Failed to save workout. Please try again.");
+			setAlertConfig({
+				visible: true,
+				title: "Error",
+				body: "Failed to save workout. Please try again.",
+			});
 		} finally {
 			setFinishing(false);
 		}
@@ -82,14 +93,25 @@ export default function ActiveWorkoutScreen() {
 		<ThemedView style={styles.container}>
 			{/* Header */}
 			<View style={[styles.header, { borderBottomColor: glassDivider }]}>
-				<View style={styles.headerLeft}>
+				<TouchableOpacity
+					style={[styles.iconBtn, { backgroundColor: subtleBtnBg, borderColor: glassBorder }]}
+					onPress={() => {
+						if (router.canGoBack()) router.back();
+						else router.replace("/(tabs)/workout");
+					}}
+				>
+					<Ionicons name="chevron-down" size={20} color={secondaryText} />
+				</TouchableOpacity>
+
+				<View style={styles.headerCenter}>
 					<ThemedText style={styles.workoutName} numberOfLines={1}>
 						{session.templateName}
 					</ThemedText>
 					<WorkoutTimer startedAt={session.startedAt} />
 				</View>
+
 				<TouchableOpacity
-					style={[styles.cancelBtn, { backgroundColor: subtleBtnBg, borderColor: glassBorder }]}
+					style={[styles.iconBtn, { backgroundColor: subtleBtnBg, borderColor: glassBorder }]}
 					onPress={() => setCancelModalVisible(true)}
 				>
 					<Ionicons name="close" size={18} color={secondaryText} />
@@ -192,6 +214,16 @@ export default function ActiveWorkoutScreen() {
 				onSelect={handleAddExercise}
 				onDismiss={() => setShowAddExercise(false)}
 			/>
+
+			<AlertModal
+				visible={alertConfig.visible}
+				onDismiss={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+				title={alertConfig.title}
+				body={alertConfig.body}
+				icon="alert-circle-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+			/>
 		</ThemedView>
 	);
 }
@@ -210,16 +242,19 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 		marginBottom: 8,
 	},
-	headerLeft: {
+	headerCenter: {
 		flex: 1,
+		alignItems: "center",
 		gap: 3,
+		paddingHorizontal: 8,
 	},
 	workoutName: {
-		fontSize: 20,
+		fontSize: 18,
 		fontWeight: "700",
 		letterSpacing: -0.3,
+		textAlign: "center",
 	},
-	cancelBtn: {
+	iconBtn: {
 		width: 36,
 		height: 36,
 		borderRadius: 11,

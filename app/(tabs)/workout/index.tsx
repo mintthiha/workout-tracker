@@ -5,6 +5,9 @@ import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-nat
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { AlertModal } from "@/components/ui/AlertModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { OptionItem, OptionsModal } from "@/components/ui/OptionsModal";
 import { TemplateCard } from "@/components/workout/TemplateCard";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
@@ -15,10 +18,22 @@ export default function WorkoutScreen() {
 	const { userId, isLoaded } = useAppContext();
 	const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
 
+	const [activeTemplate, setActiveTemplate] = useState<WorkoutTemplate | null>(null);
+	const [showOptions, setShowOptions] = useState(false);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; body: string }>({
+		visible: false,
+		title: "",
+		body: "",
+	});
+
 	const primary = useThemeColor({}, "primary");
 	const secondaryText = useThemeColor({}, "secondaryText");
 	const tertiaryText = useThemeColor({}, "tertiaryText");
 	const accentTint = useThemeColor({}, "accentTint");
+	const danger = useThemeColor({}, "danger");
+	const dangerTint = useThemeColor({}, "dangerTint");
+	const text = useThemeColor({}, "text");
 
 	useEffect(() => {
 		if (!userId) {
@@ -29,41 +44,46 @@ export default function WorkoutScreen() {
 		return unsubscribe;
 	}, [userId]);
 
-	const handleLongPress = useCallback(
-		(template: WorkoutTemplate) => {
-			Alert.alert(template.name, undefined, [
-				{
-					text: "Edit",
-					onPress: () => router.push(`/workout/create?id=${template.id}`),
-				},
-				{
-					text: "Delete",
-					style: "destructive",
-					onPress: () =>
-						Alert.alert("Delete Template", `Delete "${template.name}"?`, [
-							{ text: "Cancel", style: "cancel" },
-							{
-								text: "Delete",
-								style: "destructive",
-								onPress: async () => {
-									if (!userId) return;
-									try {
-										await workoutService.deleteTemplate(userId, template.id);
-									} catch {
-										Alert.alert(
-											"Error",
-											"Failed to delete template. Please try again.",
-										);
-									}
-								},
-							},
-						]),
-				},
-				{ text: "Cancel", style: "cancel" },
-			]);
+	const handleLongPress = useCallback((template: WorkoutTemplate) => {
+		setActiveTemplate(template);
+		setShowOptions(true);
+	}, []);
+
+	async function doDeleteTemplate() {
+		if (!userId || !activeTemplate) return;
+		try {
+			await workoutService.deleteTemplate(userId, activeTemplate.id);
+		} catch {
+			setAlertConfig({
+				visible: true,
+				title: "Error",
+				body: "Failed to delete template. Please try again.",
+			});
+		}
+	}
+
+	const TEMPLATE_OPTIONS: OptionItem[] = [
+		{
+			id: "edit",
+			label: "Edit Template",
+			description: "Modify exercises and details",
+			icon: "pencil-outline",
+			color: text,
+			onPress: () => {
+				if (activeTemplate) {
+					router.push(`/workout/create?id=${activeTemplate.id}`);
+				}
+			},
 		},
-		[userId],
-	);
+		{
+			id: "delete",
+			label: "Delete Template",
+			description: "Remove this template permanently",
+			icon: "trash-outline",
+			color: danger,
+			onPress: () => setShowDeleteConfirm(true),
+		},
+	];
 
 	if (isLoaded && !userId) return <Redirect href="/login" />;
 
@@ -123,6 +143,42 @@ export default function WorkoutScreen() {
 					</>
 				)}
 			</ScrollView>
+
+			<OptionsModal
+				visible={showOptions}
+				title={activeTemplate?.name || "Template"}
+				subtitle="Template Options"
+				options={TEMPLATE_OPTIONS}
+				onDismiss={() => setShowOptions(false)}
+			/>
+
+			<ConfirmModal
+				visible={showDeleteConfirm}
+				onDismiss={() => setShowDeleteConfirm(false)}
+				icon="trash-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+				title="Delete Template"
+				body={`Are you sure you want to delete "${activeTemplate?.name}"?`}
+				primaryLabel="Delete"
+				primaryColor={danger}
+				secondaryLabel="Cancel"
+				onPrimary={() => {
+					setShowDeleteConfirm(false);
+					doDeleteTemplate();
+				}}
+				onSecondary={() => setShowDeleteConfirm(false)}
+			/>
+
+			<AlertModal
+				visible={alertConfig.visible}
+				onDismiss={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+				title={alertConfig.title}
+				body={alertConfig.body}
+				icon="alert-circle-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+			/>
 		</ThemedView>
 	);
 }

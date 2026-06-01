@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
 import { Animated, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import Swipeable from "react-native-gesture-handler/Swipeable";
 
 import { ThemedText } from "@/components/themed-text";
 import { SetTypePickerModal } from "@/components/workout/SetTypePickerModal";
@@ -67,9 +68,21 @@ export function SetRow({
 
 	const typeStyle = set.type ? SET_TYPE_STYLES[set.type] : null;
 
+	const renderRightActions = () => {
+		return (
+			<TouchableOpacity
+				style={styles.deleteAction}
+				onPress={onRemove}
+			>
+				<Ionicons name="trash-outline" size={20} color="#fff" />
+			</TouchableOpacity>
+		);
+	};
+
 	return (
 		<>
-			<View style={[styles.row, { backgroundColor: rowBg, borderTopColor: glassDivider }]}>
+			<Swipeable renderRightActions={renderRightActions} overshootRight={false}>
+				<View style={[styles.row, { backgroundColor: rowBg, borderTopColor: glassDivider }]}>
 				{/* Set type badge — tap to change, long press to remove */}
 				<TouchableOpacity
 					onPress={() => onChangeType && setShowTypePicker(true)}
@@ -180,6 +193,7 @@ export function SetRow({
 					</Animated.View>
 				</TouchableOpacity>
 			</View>
+			</Swipeable>
 
 			{onChangeType && (
 				<SetTypePickerModal
@@ -252,5 +266,15 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		alignItems: "center",
 		justifyContent: "center",
+	},
+	deleteAction: {
+		backgroundColor: "#ef4444",
+		justifyContent: "center",
+		alignItems: "center",
+		width: 70,
+		borderTopWidth: 1,
+		borderTopColor: "transparent", 
+		marginBottom: 0,
+		marginVertical: 0,
 	},
 });

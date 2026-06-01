@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ExerciseHistoryRow } from '@/components/exercises/ExerciseHistoryRow';
 import { ExerciseImage } from '@/components/exercises/ExerciseImage';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -35,7 +36,11 @@ export default function ExerciseDetailScreen() {
   const cardBorder = useThemeColor({ light: '#e0e0e0', dark: '#2c2c2e' }, 'cardBorder');
   const secondaryText = useThemeColor({ light: '#666666', dark: '#8e8e93' }, 'secondaryText');
   const tertiaryText = useThemeColor({ light: '#999999', dark: '#666666' }, 'tertiaryText');
+  const danger = useThemeColor({}, 'danger');
+  const dangerTint = useThemeColor({}, 'dangerTint');
   const goldColor = '#ffd60a';
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!id || !userId) return;
@@ -79,18 +84,15 @@ export default function ExerciseDetailScreen() {
 
   if (isLoaded && !userId) return <Redirect href="/login" />;
 
+  if (isLoaded && !userId) return <Redirect href="/login" />;
+
   function handleDelete() {
-    Alert.alert('Delete Exercise', `Delete "${exercise?.name}"? This only removes it from your custom list.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await exerciseService.deleteCustomExercise(userId!, id!);
-          router.back();
-        },
-      },
-    ]);
+    setShowDeleteConfirm(true);
+  }
+
+  async function doDelete() {
+    await exerciseService.deleteCustomExercise(userId!, id!);
+    router.back();
   }
 
   if (loading || !exercise) {
@@ -210,6 +212,24 @@ export default function ExerciseDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        onDismiss={() => setShowDeleteConfirm(false)}
+        icon="trash-outline"
+        iconColor={danger}
+        iconBg={dangerTint}
+        title="Delete Exercise"
+        body={`Delete "${exercise?.name}"? This only removes it from your custom list.`}
+        primaryLabel="Delete"
+        primaryColor={danger}
+        secondaryLabel="Cancel"
+        onPrimary={() => {
+          setShowDeleteConfirm(false);
+          doDelete();
+        }}
+        onSecondary={() => setShowDeleteConfirm(false)}
+      />
     </ThemedView>
   );
 }

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { AlertModal } from "@/components/ui/AlertModal";
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '@/src/data/exerciseLibrary';
 import * as exerciseService from '@/src/services/exerciseService';
@@ -36,6 +37,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated, userId }: Pro
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('chest');
   const [equipment, setEquipment] = useState<EquipmentType>('barbell');
   const [saving, setSaving] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
 
   const bgColor = useThemeColor({ light: '#fff', dark: '#151718' }, 'background');
   const accentColor = useThemeColor({ light: '#3498db', dark: '#3498db' }, 'accent');
@@ -43,6 +45,8 @@ export function CreateExerciseModal({ visible, onClose, onCreated, userId }: Pro
   const cardBorder = useThemeColor({ light: '#e0e0e0', dark: '#3a3a3c' }, 'cardBorder');
   const secondaryText = useThemeColor({ light: '#666', dark: '#8e8e93' }, 'secondaryText');
   const textColor = useThemeColor({ light: '#11181C', dark: '#ECEDEE' }, 'text');
+  const danger = useThemeColor({}, "danger");
+  const dangerTint = useThemeColor({}, "dangerTint");
 
   function reset() {
     setName('');
@@ -52,7 +56,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated, userId }: Pro
 
   async function handleSave() {
     if (!name.trim()) {
-      Alert.alert('Name Required', 'Please enter an exercise name.');
+      setShowAlert(true);
       return;
     }
     setSaving(true);
@@ -158,6 +162,16 @@ export function CreateExerciseModal({ visible, onClose, onCreated, userId }: Pro
           </View>
         </ScrollView>
       </View>
+
+      <AlertModal
+        visible={showAlert}
+        onDismiss={() => setShowAlert(false)}
+        title="Name Required"
+        body="Please enter an exercise name."
+        icon="alert-circle-outline"
+        iconColor={danger}
+        iconBg={dangerTint}
+      />
     </Modal>
   );
 }

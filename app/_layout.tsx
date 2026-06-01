@@ -2,8 +2,9 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { Platform } from "react-native";
+import { LogBox, Platform } from "react-native";
 import "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppProvider } from "@/src/context/AppContext";
@@ -13,6 +14,8 @@ import {
 	requestNotificationPermissions,
 	setupNotificationChannels,
 } from "../utils/notificationManager";
+
+LogBox.ignoreLogs(["expo-notifications: Android Push notifications"]);
 
 export const unstable_settings = {
 	anchor: "(tabs)",
@@ -58,10 +61,12 @@ export default function RootLayout() {
 	}, []);
 
 	return (
-		<AppProvider>
-			<WorkoutProvider>
-				<ThemedApp />
-			</WorkoutProvider>
-		</AppProvider>
+		<GestureHandlerRootView style={{ flex: 1 }}>
+			<AppProvider>
+				<WorkoutProvider>
+					<ThemedApp />
+				</WorkoutProvider>
+			</AppProvider>
+		</GestureHandlerRootView>
 	);
 }

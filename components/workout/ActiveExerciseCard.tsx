@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { OptionItem, OptionsModal } from "@/components/ui/OptionsModal";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { SetRow } from "@/components/workout/SetRow";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -19,6 +21,8 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 	const { updateSet, toggleSetComplete, addSet, removeSet, removeExercise, replaceExercise, setSetType, updateExerciseNote } = useWorkout();
 	const [isNoteVisible, setIsNoteVisible] = useState(!!exercise.notes);
 	const [showReplace, setShowReplace] = useState(false);
+	const [showOptions, setShowOptions] = useState(false);
+	const [showConfirmRemove, setShowConfirmRemove] = useState(false);
 
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
@@ -38,37 +42,35 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 	}
 
 	function handleOptionsPress() {
-		Alert.alert(
-			exercise.exerciseName,
-			"Exercise Options",
-			[
-				{
-					text: "Replace Exercise",
-					onPress: () => setShowReplace(true),
-				},
-				{
-					text: isNoteVisible ? "Hide Note" : "Add Note",
-					onPress: () => setIsNoteVisible(!isNoteVisible),
-				},
-				{
-					text: "Delete Exercise",
-					style: "destructive",
-					onPress: () => {
-						Alert.alert(
-							"Remove Exercise?",
-							`Are you sure you want to remove ${exercise.exerciseName} from this workout?`,
-							[
-								{ text: "Cancel", style: "cancel" },
-								{ text: "Remove", style: "destructive", onPress: () => removeExercise(exerciseIdx) },
-							],
-						);
-					},
-				},
-				{ text: "Cancel", style: "cancel" },
-			],
-			{ cancelable: true }
-		);
+		setShowOptions(true);
 	}
+
+	const EXERCISE_OPTIONS: OptionItem[] = [
+		{
+			id: "replace",
+			label: "Replace Exercise",
+			description: "Swap this out for another exercise",
+			icon: "swap-horizontal",
+			color: primary,
+			onPress: () => setShowReplace(true),
+		},
+		{
+			id: "note",
+			label: isNoteVisible ? "Hide Note" : "Add Note",
+			description: isNoteVisible ? "Remove note for this exercise" : "Add a note for this exercise",
+			icon: "document-text-outline",
+			color: text,
+			onPress: () => setIsNoteVisible(!isNoteVisible),
+		},
+		{
+			id: "remove",
+			label: "Remove Exercise",
+			description: "Delete this exercise from the workout",
+			icon: "trash-outline",
+			color: danger,
+			onPress: () => setShowConfirmRemove(true),
+		},
+	];
 
 	return (
 		<View
@@ -155,6 +157,32 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 				title="Replace Exercise"
 				onSelect={(exercise: Exercise) => replaceExercise(exerciseIdx, exercise)}
 				onDismiss={() => setShowReplace(false)}
+			/>
+			
+			<OptionsModal
+				visible={showOptions}
+				title={exercise.exerciseName}
+				subtitle="Exercise Options"
+				options={EXERCISE_OPTIONS}
+				onDismiss={() => setShowOptions(false)}
+			/>
+
+			<ConfirmModal
+				visible={showConfirmRemove}
+				onDismiss={() => setShowConfirmRemove(false)}
+				icon="trash-outline"
+				iconColor={danger}
+				iconBg={danger + "22"}
+				title="Remove Exercise?"
+				body={`Are you sure you want to remove ${exercise.exerciseName} from this workout?`}
+				primaryLabel="Remove"
+				primaryColor={danger}
+				secondaryLabel="Cancel"
+				onPrimary={() => {
+					setShowConfirmRemove(false);
+					removeExercise(exerciseIdx);
+				}}
+				onSecondary={() => setShowConfirmRemove(false)}
 			/>
 		</View>
 	);
