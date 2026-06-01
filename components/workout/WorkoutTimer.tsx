@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleProp, StyleSheet, TextStyle } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface Props {
 	startedAt: number; // Unix ms
+	style?: StyleProp<TextStyle>;
 }
 
 function formatElapsed(seconds: number): string {
@@ -17,7 +18,7 @@ function formatElapsed(seconds: number): string {
 	return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
-export function WorkoutTimer({ startedAt }: Props) {
+export function WorkoutTimer({ startedAt, style }: Props) {
 	const secondaryText = useThemeColor({}, "secondaryText");
 
 	const [elapsed, setElapsed] = useState(Math.floor((Date.now() - startedAt) / 1000));
@@ -30,7 +31,7 @@ export function WorkoutTimer({ startedAt }: Props) {
 	}, [startedAt]);
 
 	return (
-		<ThemedText style={[styles.timer, { color: secondaryText }]}>
+		<ThemedText style={[styles.timer, { color: secondaryText }, style]}>
 			{formatElapsed(elapsed)}
 		</ThemedText>
 	);

@@ -2,9 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { AlertModal } from "@/components/ui/AlertModal";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { CachedProfile } from "@/src/lib/appStorage";
 import { uploadToCloudinary } from "@/src/lib/cloudinary";
 import { updateUserProfile } from "@/src/lib/userService";
@@ -23,6 +25,13 @@ interface ProfileHeaderProps {
 export function ProfileHeader({ profile }: ProfileHeaderProps) {
 	const { userId, setAccount } = useAppContext();
 	const [uploading, setUploading] = useState(false);
+	const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; body: string }>({
+		visible: false,
+		title: "",
+		body: "",
+	});
+	const danger = useThemeColor({}, "danger");
+	const dangerTint = useThemeColor({}, "dangerTint");
 
 	async function handleAvatarPress() {
 		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -30,7 +39,11 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
 			if (Platform.OS === "web") {
 				window.alert("Permission to access media library is required.");
 			} else {
-				Alert.alert("Permission required", "Allow access to your photo library to change your profile picture.");
+				setAlertConfig({
+					visible: true,
+					title: "Permission Required",
+					body: "Allow access to your photo library to change your profile picture.",
+				});
 			}
 			return;
 		}
@@ -54,7 +67,11 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
 			if (Platform.OS === "web") {
 				window.alert("Failed to upload profile picture. Please try again.");
 			} else {
-				Alert.alert("Upload failed", "Failed to upload profile picture. Please try again.");
+				setAlertConfig({
+					visible: true,
+					title: "Upload Failed",
+					body: "Failed to upload profile picture. Please try again.",
+				});
 			}
 		} finally {
 			setUploading(false);
@@ -85,6 +102,16 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
 				<ThemedText style={styles.username}>@{profile.username}</ThemedText>
 				<ThemedText style={styles.email}>{profile.email}</ThemedText>
 			</View>
+
+			<AlertModal
+				visible={alertConfig.visible}
+				onDismiss={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+				title={alertConfig.title}
+				body={alertConfig.body}
+				icon="alert-circle-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+			/>
 		</View>
 	);
 }

@@ -2,13 +2,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CategoryCard } from "@/components/settings/CategoryCard";
 import { SettingRow } from "@/components/settings/SettingRow";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { AlertModal } from "@/components/ui/AlertModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
 import type { AppPreferences, RestDuration, WeightUnit } from "@/src/lib/appStorage";
@@ -99,25 +101,23 @@ export default function SettingsScreen() {
 }
 
 function CategoriesView({ onSelect }: { onSelect: (cat: Category) => void }) {
-	async function handleClearStorage() {
-		Alert.alert(
-			"Clear All Storage",
-			"This will wipe all local data and sign you out. Continue?",
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Clear",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							await signOut();
-						} catch {}
-						await AsyncStorage.clear();
-						Alert.alert("Done", "Storage cleared. Restart the app.");
-					},
-				},
-			],
-		);
+	const [showConfirm, setShowConfirm] = useState(false);
+	const [showDone, setShowDone] = useState(false);
+	const danger = useThemeColor({}, "danger");
+	const dangerTint = useThemeColor({}, "dangerTint");
+	const success = useThemeColor({}, "success");
+	const successTint = useThemeColor({}, "successTint");
+
+	async function doClearStorage() {
+		try {
+			await signOut();
+		} catch {}
+		await AsyncStorage.clear();
+		setShowDone(true);
+	}
+
+	function handleClearStorage() {
+		setShowConfirm(true);
 	}
 
 	return (
@@ -149,6 +149,34 @@ function CategoriesView({ onSelect }: { onSelect: (cat: Category) => void }) {
 					</TouchableOpacity>
 				</View>
 			)}
+
+			<ConfirmModal
+				visible={showConfirm}
+				onDismiss={() => setShowConfirm(false)}
+				icon="warning-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+				title="Clear All Storage"
+				body="This will wipe all local data and sign you out. Continue?"
+				primaryLabel="Clear"
+				primaryColor={danger}
+				secondaryLabel="Cancel"
+				onPrimary={() => {
+					setShowConfirm(false);
+					doClearStorage();
+				}}
+				onSecondary={() => setShowConfirm(false)}
+			/>
+
+			<AlertModal
+				visible={showDone}
+				onDismiss={() => setShowDone(false)}
+				title="Done"
+				body="Storage cleared. Restart the app."
+				icon="checkmark-circle-outline"
+				iconColor={success}
+				iconBg={successTint}
+			/>
 		</View>
 	);
 }

@@ -1,36 +1,36 @@
+import { useState } from "react";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+
 import { ThemedText } from "@/components/themed-text";
+import { AlertModal } from "@/components/ui/AlertModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
 import { Ionicons } from "@expo/vector-icons";
-import { Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export function SignOutButton() {
 	const { signOut } = useAppContext();
+	const [showConfirm, setShowConfirm] = useState(false);
+	const [showError, setShowError] = useState(false);
+	const danger = useThemeColor({}, "danger");
+	const dangerTint = useThemeColor({}, "dangerTint");
+
+	async function doSignOut() {
+		try {
+			await signOut();
+		} catch {
+			setShowError(true);
+		}
+	}
 
 	async function handleSignOut() {
 		if (Platform.OS === "web") {
 			if (!window.confirm("Are you sure you want to sign out?")) return;
-			try {
-				await signOut();
-			} catch {
-				window.alert("Failed to sign out. Please try again.");
-			}
+			await doSignOut();
 			return;
 		}
 
-		Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-			{ text: "Cancel", style: "cancel" },
-			{
-				text: "Sign Out",
-				style: "destructive",
-				onPress: async () => {
-					try {
-						await signOut();
-					} catch {
-						Alert.alert("Error", "Failed to sign out. Please try again.");
-					}
-				},
-			},
-		]);
+		setShowConfirm(true);
 	}
 
 	return (
@@ -39,6 +39,34 @@ export function SignOutButton() {
 				<Ionicons name="log-out-outline" size={22} color="#d32f2f" />
 				<ThemedText style={styles.text}>Sign Out</ThemedText>
 			</TouchableOpacity>
+
+			<ConfirmModal
+				visible={showConfirm}
+				onDismiss={() => setShowConfirm(false)}
+				icon="log-out-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+				title="Sign Out"
+				body="Are you sure you want to sign out?"
+				primaryLabel="Sign Out"
+				primaryColor={danger}
+				secondaryLabel="Cancel"
+				onPrimary={() => {
+					setShowConfirm(false);
+					doSignOut();
+				}}
+				onSecondary={() => setShowConfirm(false)}
+			/>
+
+			<AlertModal
+				visible={showError}
+				onDismiss={() => setShowError(false)}
+				title="Error"
+				body="Failed to sign out. Please try again."
+				icon="alert-circle-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+			/>
 		</View>
 	);
 }

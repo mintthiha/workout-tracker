@@ -3,7 +3,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
 	ActivityIndicator,
-	Alert,
 	Modal,
 	Platform,
 	StyleSheet,
@@ -14,6 +13,7 @@ import {
 
 import { FeedMedia } from "@/components/feed/FeedMedia";
 import { ThemedText } from "@/components/themed-text";
+import { AlertModal } from "@/components/ui/AlertModal";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { uploadToCloudinary } from "@/src/lib/cloudinary";
 import { PostMedia, PostMediaType } from "@/src/types/workout";
@@ -45,6 +45,14 @@ export function CreatePostModal({ visible, onClose, onSubmit }: Props) {
 	const accentColor = useThemeColor({}, "accent");
 	const inputBg = useThemeColor({}, "inputBg");
 	const textColor = useThemeColor({}, "text");
+	const danger = useThemeColor({}, "danger");
+	const dangerTint = useThemeColor({}, "dangerTint");
+
+	const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; body: string }>({
+		visible: false,
+		title: "",
+		body: "",
+	});
 
 	function resetState() {
 		setContent("");
@@ -57,7 +65,11 @@ export function CreatePostModal({ visible, onClose, onSubmit }: Props) {
 			if (Platform.OS === "web") {
 				window.alert("Permission to access media library is required.");
 			} else {
-				Alert.alert("Permission required", "Allow access to your library to attach media.");
+				setAlertConfig({
+					visible: true,
+					title: "Permission Required",
+					body: "Allow access to your library to attach media.",
+				});
 			}
 			return;
 		}
@@ -104,7 +116,11 @@ export function CreatePostModal({ visible, onClose, onSubmit }: Props) {
 			if (Platform.OS === "web") {
 				window.alert("Failed to create post. Please try again.");
 			} else {
-				Alert.alert("Post failed", "Failed to create post. Please try again.");
+				setAlertConfig({
+					visible: true,
+					title: "Post Failed",
+					body: "Failed to create post. Please try again.",
+				});
 			}
 		} finally {
 			setLoading(false);
@@ -192,6 +208,16 @@ export function CreatePostModal({ visible, onClose, onSubmit }: Props) {
 					</TouchableOpacity>
 				</View>
 			</View>
+
+			<AlertModal
+				visible={alertConfig.visible}
+				onDismiss={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+				title={alertConfig.title}
+				body={alertConfig.body}
+				icon="alert-circle-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+			/>
 		</Modal>
 	);
 }

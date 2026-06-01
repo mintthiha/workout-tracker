@@ -23,9 +23,9 @@ export const Colors = {
 		cardBorder: "rgba(0,0,0,0.08)",
 
 		// Glass-style card (used in workout UI)
-		glassCard: "rgba(255,255,255,0.92)",
+		glassCard: "#ffffff",
 		glassBorder: "rgba(0,0,0,0.08)",
-		glassDivider: "rgba(0,0,0,0.07)",
+		glassDivider: "rgba(0,0,0,0.08)",
 
 		// ── Text ──────────────────────────────────────────────────────────────
 		secondaryText: "#777777",
@@ -69,9 +69,9 @@ export const Colors = {
 		cardBorder: "rgba(255,255,255,0.12)",
 
 		// Glass-style card (used in workout UI)
-		glassCard: "rgba(255,255,255,0.06)",
+		glassCard: "#1c1c1e",
 		glassBorder: "rgba(255,255,255,0.12)",
-		glassDivider: "rgba(255,255,255,0.08)",
+		glassDivider: "rgba(255,255,255,0.12)",
 
 		// ── Text ──────────────────────────────────────────────────────────────
 		secondaryText: "rgba(255,255,255,0.5)",

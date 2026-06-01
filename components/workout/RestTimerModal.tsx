@@ -1,9 +1,7 @@
-import { BlurView } from "expo-blur";
 import { useEffect, useState } from "react";
-import { Modal, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface Props {
@@ -20,7 +18,6 @@ function formatCountdown(s: number): string {
 
 export function RestTimerModal({ visible, seconds, onDismiss }: Props) {
 	const [remaining, setRemaining] = useState(seconds);
-	const scheme = useColorScheme();
 
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
@@ -59,7 +56,7 @@ export function RestTimerModal({ visible, seconds, onDismiss }: Props) {
 				<View
 					style={[
 						styles.ringFg,
-						{ borderColor: timerColor, opacity: 0.35 + 0.65 * (remaining / seconds) },
+						{ borderColor: timerColor, opacity: 0.35 + 0.65 * (remaining / Math.max(seconds, 1)) },
 					]}
 				/>
 				<View style={styles.ringCenter}>
@@ -70,31 +67,37 @@ export function RestTimerModal({ visible, seconds, onDismiss }: Props) {
 				</View>
 			</View>
 
-			<TouchableOpacity
-				style={[styles.skipBtn, { backgroundColor: timerTint, borderColor: timerColor + "50" }]}
-				onPress={onDismiss}
-			>
-				<ThemedText style={[styles.skipBtnText, { color: timerColor }]}>Skip Rest</ThemedText>
-			</TouchableOpacity>
+			<View style={styles.actionRow}>
+				<TouchableOpacity
+					style={[styles.timeBtn, { backgroundColor: timerTint }]}
+					onPress={() => setRemaining((prev) => Math.max(0, prev - 10))}
+				>
+					<ThemedText style={[styles.timeBtnText, { color: timerColor }]}>-10s</ThemedText>
+				</TouchableOpacity>
+
+				<TouchableOpacity
+					style={[styles.skipBtn, { backgroundColor: timerTint, borderColor: timerColor + "50" }]}
+					onPress={onDismiss}
+				>
+					<ThemedText style={[styles.skipBtnText, { color: timerColor }]}>Skip</ThemedText>
+				</TouchableOpacity>
+
+				<TouchableOpacity
+					style={[styles.timeBtn, { backgroundColor: timerTint }]}
+					onPress={() => setRemaining((prev) => prev + 10)}
+				>
+					<ThemedText style={[styles.timeBtnText, { color: timerColor }]}>+10s</ThemedText>
+				</TouchableOpacity>
+			</View>
 		</>
 	);
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
 			<View style={styles.overlay}>
-				{Platform.OS === "ios" ? (
-					<BlurView
-						intensity={70}
-						tint={scheme === "dark" ? "dark" : "light"}
-						style={[styles.card, { borderColor: glassBorder }]}
-					>
-						{cardContent}
-					</BlurView>
-				) : (
-					<View style={[styles.card, { backgroundColor: glassCard, borderColor: glassBorder }]}>
-						{cardContent}
-					</View>
-				)}
+				<View style={[styles.card, { backgroundColor: glassCard, borderColor: glassBorder }]}>
+					{cardContent}
+				</View>
 			</View>
 		</Modal>
 	);
@@ -108,11 +111,11 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(0,0,0,0.6)",
 	},
 	card: {
-		width: 260,
+		width: 300,
 		borderRadius: 28,
 		alignItems: "center",
 		paddingVertical: 36,
-		paddingHorizontal: 28,
+		paddingHorizontal: 20,
 		gap: 24,
 		borderWidth: 1,
 		overflow: "hidden",
@@ -123,23 +126,23 @@ const styles = StyleSheet.create({
 		elevation: 12,
 	},
 	ringContainer: {
-		width: 156,
-		height: 156,
+		width: 180,
+		height: 180,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	ringBg: {
 		position: "absolute",
-		width: 156,
-		height: 156,
-		borderRadius: 78,
+		width: 180,
+		height: 180,
+		borderRadius: 90,
 		borderWidth: 5,
 	},
 	ringFg: {
 		position: "absolute",
-		width: 156,
-		height: 156,
-		borderRadius: 78,
+		width: 180,
+		height: 180,
+		borderRadius: 90,
 		borderWidth: 5,
 	},
 	ringCenter: {
@@ -152,14 +155,36 @@ const styles = StyleSheet.create({
 		letterSpacing: 2,
 	},
 	countdown: {
-		fontSize: 50,
+		fontSize: 44,
 		fontWeight: "700",
 		fontVariant: ["tabular-nums"],
 		letterSpacing: -1,
+		lineHeight: 56,
+		includeFontPadding: false,
+	},
+	actionRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		width: "100%",
+		gap: 8,
+	},
+	timeBtn: {
+		width: 56,
+		height: 44,
+		borderRadius: 14,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	timeBtnText: {
+		fontSize: 14,
+		fontWeight: "700",
 	},
 	skipBtn: {
-		paddingHorizontal: 32,
-		paddingVertical: 12,
+		flex: 1,
+		height: 44,
+		alignItems: "center",
+		justifyContent: "center",
 		borderRadius: 14,
 		borderWidth: 1,
 	},

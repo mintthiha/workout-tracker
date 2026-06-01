@@ -3,7 +3,6 @@ import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
-	Alert,
 	FlatList,
 	Modal,
 	ScrollView,
@@ -16,6 +15,7 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { AlertModal } from "@/components/ui/AlertModal";
 import { MuscleGroupColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -78,8 +78,15 @@ export default function CreateTemplateScreen() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | null>(null);
 	const [saving, setSaving] = useState(false);
+	const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; body: string }>({
+		visible: false,
+		title: "",
+		body: "",
+	});
 
 	const primary = useThemeColor({}, "primary");
+	const danger = useThemeColor({}, "danger");
+	const dangerTint = useThemeColor({}, "dangerTint");
 	const glassCard = useThemeColor({}, "glassCard");
 	const glassBorder = useThemeColor({}, "glassBorder");
 	const glassDivider = useThemeColor({}, "glassDivider");
@@ -158,7 +165,11 @@ export default function CreateTemplateScreen() {
 	const addExercise = useCallback((exercise: Exercise) => {
 		setExercises((prev) => {
 			if (prev.some((e) => e.exerciseId === exercise.id)) {
-				Alert.alert("Already Added", `${exercise.name} is already in this template.`);
+				setAlertConfig({
+					visible: true,
+					title: "Already Added",
+					body: `${exercise.name} is already in this template.`,
+				});
 				return prev;
 			}
 			return [
@@ -190,11 +201,19 @@ export default function CreateTemplateScreen() {
 
 	const handleSave = useCallback(async () => {
 		if (!templateName.trim()) {
-			Alert.alert("Name Required", "Please give your template a name.");
+			setAlertConfig({
+				visible: true,
+				title: "Name Required",
+				body: "Please give your template a name.",
+			});
 			return;
 		}
 		if (exercises.length === 0) {
-			Alert.alert("No Exercises", "Add at least one exercise to your template.");
+			setAlertConfig({
+				visible: true,
+				title: "No Exercises",
+				body: "Add at least one exercise to your template.",
+			});
 			return;
 		}
 		if (!userId) return;
@@ -211,7 +230,11 @@ export default function CreateTemplateScreen() {
 			}
 			router.back();
 		} catch {
-			Alert.alert("Error", "Failed to save template. Please try again.");
+			setAlertConfig({
+				visible: true,
+				title: "Error",
+				body: "Failed to save template. Please try again.",
+			});
 		} finally {
 			setSaving(false);
 		}
@@ -310,6 +333,16 @@ export default function CreateTemplateScreen() {
 					</TouchableOpacity>
 				)}
 			</ScrollView>
+
+			<AlertModal
+				visible={alertConfig.visible}
+				onDismiss={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+				title={alertConfig.title}
+				body={alertConfig.body}
+				icon="alert-circle-outline"
+				iconColor={danger}
+				iconBg={dangerTint}
+			/>
 
 			{/* ── Exercise Picker Modal ──────────────────────────────────────── */}
 			<Modal
