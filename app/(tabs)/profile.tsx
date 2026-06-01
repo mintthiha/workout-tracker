@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Redirect, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { Redirect, useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,11 +11,14 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAppContext } from "@/src/context/AppContext";
 import { getUserProfile } from "@/src/lib/userService";
+import { getWorkoutLogs } from "@/src/services/workoutService";
+import { WorkoutLog } from "@/src/types/workout";
 
 export default function ProfileScreen() {
 	const router = useRouter();
 	const { userId, userProfile, isLoaded, setAccount } = useAppContext();
 	const isLoggedIn = !!userId && !!userProfile;
+	const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([]);
 
 	// Refresh profile from Firestore when logged in.
 	useEffect(() => {
@@ -27,6 +30,19 @@ export default function ProfileScreen() {
 			}
 		})();
 	}, [userId, setAccount]);
+
+	// Reload workout logs every time the Profile tab is focused so the heatmap stays current.
+	useFocusEffect(
+		useCallback(() => {
+			if (!userId) {
+				setWorkoutLogs([]);
+				return;
+			}
+			getWorkoutLogs(userId)
+				.then(setWorkoutLogs)
+				.catch(() => setWorkoutLogs([]));
+		}, [userId]),
+	);
 
 	if (!isLoaded) {
 		return (
@@ -64,7 +80,7 @@ export default function ProfileScreen() {
 
 					<View style={styles.separator} />
 
-					<ActivityHeatmap />
+					<ActivityHeatmap logs={workoutLogs} />
 
 					<View style={styles.separator} />
 

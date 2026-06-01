@@ -1,18 +1,25 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { useMemo } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
-interface Contribution {
-	day: number;
-	level: number;
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import {
+	bucketLogsByDay,
+	countWorkoutsInPastDays,
+	DAYS_PER_WEEK,
+	getHeatmapMonthLabels,
+	HEATMAP_WEEKS,
+	HeatmapLevel,
+} from "@/src/lib/heatmap";
+import { WorkoutLog } from "@/src/types/workout";
+
+interface ActivityHeatmapProps {
+	logs: WorkoutLog[];
+	referenceDate?: Date;
 }
 
-const contributionData: Contribution[] = [
-	{ day: 1, level: 4 },
-	{ day: 8, level: 3 },
-];
-
-function getLevelColor(level: number) {
+/** Returns the GitHub-style green for the given intensity bucket; level 0 is the empty-cell color. */
+function getLevelColor(level: HeatmapLevel): string {
 	switch (level) {
 		case 1:
 			return "#9be9a8";
@@ -27,33 +34,33 @@ function getLevelColor(level: number) {
 	}
 }
 
-export function ActivityHeatmap() {
+/** Profile activity heatmap — renders a 53-week grid of per-day workout intensity derived from the user's logs. */
+export function ActivityHeatmap({ logs, referenceDate }: ActivityHeatmapProps) {
+	const days = useMemo(() => bucketLogsByDay(logs, referenceDate), [logs, referenceDate]);
+	const pastMonthCount = useMemo(
+		() => countWorkoutsInPastDays(logs, undefined, referenceDate),
+		[logs, referenceDate],
+	);
+	const monthLabels = useMemo(() => getHeatmapMonthLabels(referenceDate), [referenceDate]);
+
+	const sessionWord = pastMonthCount === 1 ? "session" : "sessions";
+
 	return (
 		<ThemedView style={styles.container}>
 			<ThemedText style={styles.title}>Activity</ThemedText>
 			<ThemedText style={styles.count}>
-				11 workout sessions completed in the past month
+				{pastMonthCount} workout {sessionWord} completed in the past month
 			</ThemedText>
 
 			<ThemedView style={styles.card}>
 				<ScrollView horizontal showsHorizontalScrollIndicator={false}>
 					<View style={styles.internal}>
 						<View style={styles.monthsRow}>
-							{[
-								"Feb",
-								"Mar",
-								"Apr",
-								"May",
-								"Jun",
-								"Jul",
-								"Aug",
-								"Sep",
-								"Oct",
-								"Nov",
-								"Dec",
-								"Jan",
-							].map((month) => (
-								<ThemedText key={month} style={styles.monthLabel}>
+							{monthLabels.map((month, index) => (
+								<ThemedText
+									key={`${month}-${index}`}
+									style={styles.monthLabel}
+								>
 									{month}
 								</ThemedText>
 							))}
@@ -67,21 +74,17 @@ export function ActivityHeatmap() {
 							</View>
 
 							<View style={styles.grid}>
-								{Array.from({ length: 53 }).map((_, colIndex) => (
+								{Array.from({ length: HEATMAP_WEEKS }).map((_, colIndex) => (
 									<View key={colIndex} style={styles.weekColumn}>
-										{Array.from({ length: 7 }).map((_, rowIndex) => {
-											const dayIndex = colIndex * 7 + rowIndex;
-											const contribution = contributionData.find(
-												(d) => d.day === dayIndex,
-											);
-											const level = contribution ? contribution.level : 0;
+										{Array.from({ length: DAYS_PER_WEEK }).map((_, rowIndex) => {
+											const cell = days[colIndex * DAYS_PER_WEEK + rowIndex];
+											const backgroundColor = cell?.isFuture
+												? "transparent"
+												: getLevelColor(cell?.level ?? 0);
 											return (
 												<View
 													key={rowIndex}
-													style={[
-														styles.square,
-														{ backgroundColor: getLevelColor(level) },
-													]}
+													style={[styles.square, { backgroundColor }]}
 												/>
 											);
 										})}
@@ -94,7 +97,7 @@ export function ActivityHeatmap() {
 
 				<View style={styles.legendContainer}>
 					<ThemedText style={styles.legendText}>Less</ThemedText>
-					{[0, 1, 2, 3, 4].map((lvl) => (
+					{([0, 1, 2, 3, 4] as HeatmapLevel[]).map((lvl) => (
 						<View
 							key={lvl}
 							style={[styles.square, { backgroundColor: getLevelColor(lvl) }]}
