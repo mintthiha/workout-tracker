@@ -1,8 +1,11 @@
 import {
 	bucketLogsByDay,
+	countWorkoutsInMonth,
 	countWorkoutsInPastDays,
 	DAYS_PER_WEEK,
 	getHeatmapMonthLabels,
+	getMonthGridDays,
+	getMonthName,
 	HEATMAP_TOTAL_DAYS,
 	HEATMAP_WEEKS,
 	intensityLevelFromSets,
@@ -236,5 +239,100 @@ describe("getHeatmapMonthLabels", () => {
 
 		expect(labels[labels.length - 1]).toBe("Jan");
 		expect(labels[0]).toBe("Feb");
+	});
+});
+
+describe("getMonthGridDays", () => {
+	// May 2026: starts on Friday (Mon=0 → Fri=4), 31 days → 5 rows
+	const referenceDate = new Date(2026, 4, 31);
+
+	it("returns 5 rows for May 2026", () => {
+		const grid = getMonthGridDays([], 2026, 4, referenceDate);
+
+		expect(grid).toHaveLength(5);
+		expect(grid[0]).toHaveLength(7);
+	});
+
+	it("pads the first row correctly — May 1 falls in column 4 (Friday)", () => {
+		const grid = getMonthGridDays([], 2026, 4, referenceDate);
+		const firstRow = grid[0];
+
+		expect(firstRow[0].date).toBeNull();
+		expect(firstRow[1].date).toBeNull();
+		expect(firstRow[2].date).toBeNull();
+		expect(firstRow[3].date).toBeNull();
+		expect(firstRow[4].date?.getDate()).toBe(1);
+		expect(firstRow[5].date?.getDate()).toBe(2);
+		expect(firstRow[6].date?.getDate()).toBe(3);
+	});
+
+	it("places May 31 in the last cell of the last row with level 0 for no workouts", () => {
+		const grid = getMonthGridDays([], 2026, 4, referenceDate);
+		const lastRow = grid[grid.length - 1];
+		const may31 = lastRow.find((cell) => cell.date?.getDate() === 31);
+
+		expect(may31).toBeDefined();
+		expect(may31?.level).toBe(0);
+	});
+
+	it("assigns the correct intensity level to a day with logged sets", () => {
+		const may15 = new Date(2026, 4, 15).getTime();
+		const logs = [makeLogWithCompletedSets(may15, 12)];
+		const grid = getMonthGridDays(logs, 2026, 4, referenceDate);
+
+		const row2 = grid[2];
+		const cell = row2.find((c) => c.date?.getDate() === 15);
+
+		expect(cell?.completedSets).toBe(12);
+		expect(cell?.level).toBe(3);
+	});
+
+	it("keeps future cells at level 0 when reference date is mid-month", () => {
+		const midMonthReference = new Date(2026, 4, 15);
+		const grid = getMonthGridDays([], 2026, 4, midMonthReference);
+
+		const allDaysAfter15 = grid
+			.flat()
+			.filter((cell) => cell.date !== null && cell.date.getDate() > 15);
+
+		expect(allDaysAfter15.every((cell) => cell.level === 0)).toBe(true);
+	});
+
+	it("returns 6 rows for a month that spans six weeks", () => {
+		// January 2023 starts on Sunday (Mon=0 → Sun=6), 31 days → ceil((6+31)/7) = 6 rows
+		const janReference = new Date(2023, 0, 31);
+		const grid = getMonthGridDays([], 2023, 0, janReference);
+
+		expect(grid).toHaveLength(6);
+	});
+});
+
+describe("countWorkoutsInMonth", () => {
+	it("counts only logs within the calendar month", () => {
+		const inMay = [
+			makeLog({ completedAt: new Date(2026, 4, 1).getTime() }),
+			makeLog({ completedAt: new Date(2026, 4, 31).getTime() }),
+		];
+		const outOfMay = makeLog({ completedAt: new Date(2026, 5, 1).getTime() });
+
+		expect(countWorkoutsInMonth([...inMay, outOfMay], 2026, 4)).toBe(2);
+	});
+
+	it("returns 0 for an empty log list", () => {
+		expect(countWorkoutsInMonth([], 2026, 4)).toBe(0);
+	});
+
+	it("returns 0 when no logs fall in the target month", () => {
+		const logs = [makeLog({ completedAt: new Date(2026, 3, 15).getTime() })];
+
+		expect(countWorkoutsInMonth(logs, 2026, 4)).toBe(0);
+	});
+});
+
+describe("getMonthName", () => {
+	it("returns the full month name for a 0-based month index", () => {
+		expect(getMonthName(0)).toBe("January");
+		expect(getMonthName(4)).toBe("May");
+		expect(getMonthName(11)).toBe("December");
 	});
 });
