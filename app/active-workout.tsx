@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -38,8 +38,15 @@ export default function ActiveWorkoutScreen() {
 	const glassDivider = useThemeColor({}, "glassDivider");
 	const subtleBtnBg = useThemeColor({}, "subtleBtnBg");
 
+	// Redirect after render, not during — calling router during render updates NavigationContainerInner's
+	// state while this component is still rendering, which React forbids.
+	useEffect(() => {
+		if (!session) {
+			router.replace("/(tabs)/workout");
+		}
+	}, [session]);
+
 	if (!session) {
-		router.replace("/(tabs)/workout");
 		return null;
 	}
 
