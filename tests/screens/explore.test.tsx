@@ -1,5 +1,5 @@
 import { ActivityIndicator } from "react-native";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 
 import FeedScreen from "@/app/(tabs)/explore";
 
@@ -111,7 +111,17 @@ const { createPost, getPostLikes, subscribeToPostLikeStatus, subscribeToPosts, t
 
 describe("FeedScreen", () => {
 	beforeEach(() => {
+		jest.useFakeTimers();
 		jest.clearAllMocks();
+	});
+
+	afterEach(async () => {
+		// Flush any VirtualizedList internal timers inside act so they don't
+		// leak into subsequent test files when running with --runInBand.
+		await act(async () => {
+			jest.runAllTimers();
+		});
+		jest.useRealTimers();
 	});
 
 	it("shows the signed-out message once auth is loaded and there is no user", () => {
