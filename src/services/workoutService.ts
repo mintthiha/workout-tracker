@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/src/lib/firebase";
+import { calculateOneRepMax, OneRepMaxFormula } from "@/src/lib/oneRepMax";
 import { LoggedExercise, LoggedSet, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
 
 // ─── ID Generation ────────────────────────────────────────────────────────────
@@ -117,37 +118,43 @@ export async function deleteWorkoutLog(userId: string, id: string): Promise<void
 }
 
 // ─── Personal Records ─────────────────────────────────────────────────────────
-// Detects PRs by comparing current sets against the best historical set
-// for the same exercise (using 1-rep-max equivalent: weight × reps).
+// Detects PRs by comparing estimated 1-rep max against the best historical set
+// for the same exercise. Also populates estimatedOneRepMax on each completed set.
 
+/** Detects which sets in the current session are PRs and annotates each with its e1RM. */
 export function detectPersonalRecords(
 	exerciseId: string,
 	sets: LoggedSet[],
 	pastLogs: WorkoutLog[],
+	formula: OneRepMaxFormula = "epley",
 ): LoggedSet[] {
-	let bestPreviousVolume = 0;
+	let bestPreviousE1RM = 0;
 
 	for (const log of pastLogs) {
 		for (const ex of log.exercises) {
 			if (ex.exerciseId !== exerciseId) continue;
 			for (const s of ex.sets) {
 				if (s.completed) {
-					bestPreviousVolume = Math.max(
-						bestPreviousVolume,
-						s.actualWeight * s.actualReps,
+					bestPreviousE1RM = Math.max(
+						bestPreviousE1RM,
+						calculateOneRepMax(s.actualWeight, s.actualReps, formula),
 					);
 				}
 			}
 		}
 	}
 
-	return sets.map((set) => ({
-		...set,
-		isPersonalRecord:
-			set.completed &&
-			set.actualWeight * set.actualReps > 0 &&
-			set.actualWeight * set.actualReps > bestPreviousVolume,
-	}));
+	return sets.map((set) => {
+		const e1rm =
+			set.completed && set.actualWeight > 0 && set.actualReps > 0
+				? calculateOneRepMax(set.actualWeight, set.actualReps, formula)
+				: 0;
+		return {
+			...set,
+			estimatedOneRepMax: e1rm > 0 ? e1rm : undefined,
+			isPersonalRecord: set.completed && e1rm > 0 && e1rm > bestPreviousE1RM,
+		};
+	});
 }
 
 // ─── Volume Calculation ───────────────────────────────────────────────────────

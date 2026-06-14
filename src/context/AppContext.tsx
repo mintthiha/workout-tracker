@@ -37,6 +37,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
 	autoStartRestTimer: false,
 	timerSound: true,
 	vibration: true,
+	oneRepMaxFormula: "epley",
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {

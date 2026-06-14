@@ -6,6 +6,8 @@ import Swipeable from "react-native-gesture-handler/Swipeable";
 import { ThemedText } from "@/components/themed-text";
 import { SetTypePickerModal } from "@/components/workout/SetTypePickerModal";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { OneRepMaxFormula, WeightUnit } from "@/src/lib/appStorage";
+import { calculateOneRepMax } from "@/src/lib/oneRepMax";
 import { ActiveSet, SetType } from "@/src/types/workout";
 
 interface Props {
@@ -16,6 +18,8 @@ interface Props {
 	onToggleComplete: () => void;
 	onRemove: () => void;
 	onChangeType?: (type: SetType) => void;
+	oneRepMaxFormula?: OneRepMaxFormula;
+	weightUnit?: WeightUnit;
 }
 
 const SET_TYPE_STYLES: Record<
@@ -27,6 +31,7 @@ const SET_TYPE_STYLES: Record<
 	drop:    { icon: "arrow-down-circle", color: "#f97316" },
 };
 
+/** Renders a single set row with inputs, completion toggle, and an e1RM badge when completed. */
 export function SetRow({
 	set,
 	setNumber,
@@ -35,6 +40,8 @@ export function SetRow({
 	onToggleComplete,
 	onRemove,
 	onChangeType,
+	oneRepMaxFormula,
+	weightUnit = "lbs",
 }: Props) {
 	const [showTypePicker, setShowTypePicker] = useState(false);
 
@@ -67,6 +74,11 @@ export function SetRow({
 	};
 
 	const typeStyle = set.type ? SET_TYPE_STYLES[set.type] : null;
+
+	const e1rm =
+		set.completed && set.actualWeight > 0 && set.actualReps > 0 && oneRepMaxFormula
+			? calculateOneRepMax(set.actualWeight, set.actualReps, oneRepMaxFormula)
+			: 0;
 
 	const renderRightActions = () => {
 		return (
@@ -195,6 +207,14 @@ export function SetRow({
 			</View>
 			</Swipeable>
 
+			{e1rm > 0 && (
+				<View style={[styles.e1rmRow, { borderTopColor: glassDivider }]}>
+					<ThemedText style={[styles.e1rmText, { color: success }]}>
+						Est. 1RM: {Math.round(e1rm)} {weightUnit}
+					</ThemedText>
+				</View>
+			)}
+
 			{onChangeType && (
 				<SetTypePickerModal
 					visible={showTypePicker}
@@ -273,8 +293,20 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		width: 70,
 		borderTopWidth: 1,
-		borderTopColor: "transparent", 
+		borderTopColor: "transparent",
 		marginBottom: 0,
 		marginVertical: 0,
+	},
+	e1rmRow: {
+		alignItems: "center",
+		paddingVertical: 4,
+		borderTopWidth: 1,
+		marginHorizontal: -2,
+		paddingHorizontal: 2,
+	},
+	e1rmText: {
+		fontSize: 11,
+		fontWeight: "600",
+		letterSpacing: 0.3,
 	},
 });

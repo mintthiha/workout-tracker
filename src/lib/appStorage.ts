@@ -1,5 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile } from "./userService";
+import { OneRepMaxFormula } from "./oneRepMax";
+
+export type { OneRepMaxFormula };
 
 // Credentials are handled by Firebase Auth — profile data is safe to cache.
 export type CachedProfile = UserProfile;
@@ -14,6 +17,7 @@ export interface AppPreferences {
 	autoStartRestTimer: boolean;
 	timerSound: boolean;
 	vibration: boolean;
+	oneRepMaxFormula: OneRepMaxFormula;
 }
 
 const DEFAULT_PREFERENCES: AppPreferences = {
@@ -23,6 +27,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
 	autoStartRestTimer: false,
 	timerSound: true,
 	vibration: true,
+	oneRepMaxFormula: "epley",
 };
 
 const KEYS = {

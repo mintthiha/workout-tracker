@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { useAppContext } from "@/src/context/AppContext";
+import { AppPreferences } from "@/src/lib/appStorage";
 import * as workoutService from "@/src/services/workoutService";
 import * as workoutStorage from "@/src/storage/workoutStorage";
 import { ActiveExercise, ActiveSet, ActiveWorkoutSession, Exercise, LoggedExercise, SetType, WorkoutLog, WorkoutTemplate } from "@/src/types/workout";
@@ -39,19 +40,23 @@ const WorkoutContext = createContext<WorkoutContextValue | null>(null);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
-	const { userId } = useAppContext();
+	const { userId, preferences } = useAppContext();
 	const [session, setSession] = useState<ActiveWorkoutSession | null>(null);
 	const [completedLog, setCompletedLog] = useState<WorkoutLog | null>(null);
 
 	// Refs keep finishWorkout's closure from going stale.
 	const sessionRef = useRef<ActiveWorkoutSession | null>(null);
 	const userIdRef = useRef<string | null>(null);
+	const prefsRef = useRef<AppPreferences>(preferences);
 	useEffect(() => {
 		sessionRef.current = session;
 	}, [session]);
 	useEffect(() => {
 		userIdRef.current = userId;
 	}, [userId]);
+	useEffect(() => {
+		prefsRef.current = preferences;
+	}, [preferences]);
 
 	// Crash recovery: restore any persisted session on mount.
 	useEffect(() => {
@@ -115,6 +120,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 
 		const completedAt = Date.now();
 		const pastLogs = await workoutService.getWorkoutLogs(uid);
+		const formula = prefsRef.current.oneRepMaxFormula;
 
 		// Only keep sets with real data (actualReps > 0), auto-marking them complete.
 		// Skip exercises that end up with no valid sets.
@@ -130,20 +136,25 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 					ex.exerciseId,
 					validSets,
 					pastLogs,
+					formula,
 				);
 
 				const loggedEx: LoggedExercise = {
 					exerciseId: ex.exerciseId,
 					exerciseName: ex.exerciseName,
-					sets: setsWithPR.map(s => ({
-						type: s.type || "normal",
-						targetReps: s.targetReps,
-						targetWeight: s.targetWeight,
-						actualReps: s.actualReps,
-						actualWeight: s.actualWeight,
-						completed: s.completed,
-						isPersonalRecord: s.isPersonalRecord,
-					})),
+					sets: setsWithPR.map(s => {
+						const mapped = {
+							type: s.type || "normal",
+							targetReps: s.targetReps,
+							targetWeight: s.targetWeight,
+							actualReps: s.actualReps,
+							actualWeight: s.actualWeight,
+							completed: s.completed,
+							isPersonalRecord: s.isPersonalRecord,
+							estimatedOneRepMax: s.estimatedOneRepMax,
+						};
+						return mapped;
+					}),
 				};
 				// Avoid sending undefined to Firestore for optional fields
 				if (ex.notes) loggedEx.notes = ex.notes;

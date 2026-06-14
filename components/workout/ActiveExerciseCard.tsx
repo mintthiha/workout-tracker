@@ -8,6 +8,7 @@ import { OptionItem, OptionsModal } from "@/components/ui/OptionsModal";
 import { ExercisePickerSheet } from "@/components/workout/ExercisePickerSheet";
 import { SetRow } from "@/components/workout/SetRow";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { useAppContext } from "@/src/context/AppContext";
 import { useWorkout } from "@/src/context/WorkoutContext";
 import { ActiveExercise, Exercise } from "@/src/types/workout";
 
@@ -17,8 +18,10 @@ interface Props {
 	onSetCompleted: (restSeconds: number) => void;
 }
 
+/** Card rendering an active exercise with its sets, note, and add/remove controls. */
 export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Props) {
 	const { updateSet, toggleSetComplete, addSet, removeSet, removeExercise, replaceExercise, setSetType, updateExerciseNote } = useWorkout();
+	const { preferences } = useAppContext();
 	const [isNoteVisible, setIsNoteVisible] = useState(!!exercise.notes);
 	const [showReplace, setShowReplace] = useState(false);
 	const [showOptions, setShowOptions] = useState(false);
@@ -139,6 +142,8 @@ export function ActiveExerciseCard({ exercise, exerciseIdx, onSetCompleted }: Pr
 							}
 						}}
 						onChangeType={(type) => setSetType(exerciseIdx, setIdx, type)}
+						oneRepMaxFormula={preferences.oneRepMaxFormula}
+						weightUnit={preferences.weightUnit}
 					/>
 				))}
 

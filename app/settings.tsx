@@ -13,7 +13,7 @@ import { AlertModal } from "@/components/ui/AlertModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppContext } from "@/src/context/AppContext";
-import type { AppPreferences, RestDuration, WeightUnit } from "@/src/lib/appStorage";
+import type { AppPreferences, OneRepMaxFormula, RestDuration, WeightUnit } from "@/src/lib/appStorage";
 import { signOut } from "@/src/lib/authService";
 
 type Category = "appearance" | "workouts" | "notifications";
@@ -36,6 +36,11 @@ const THEME_OPTIONS: { label: string; value: AppPreferences["colorScheme"] }[] =
 const WEIGHT_OPTIONS: { label: string; value: WeightUnit }[] = [
 	{ label: "Pounds (lbs)", value: "lbs" },
 	{ label: "Kilograms (kg)", value: "kg" },
+];
+
+const E1RM_FORMULA_OPTIONS: { label: string; value: OneRepMaxFormula }[] = [
+	{ label: "Epley", value: "epley" },
+	{ label: "Brzycki", value: "brzycki" },
 ];
 
 export default function SettingsScreen() {
@@ -220,6 +225,16 @@ function WorkoutSettings({
 				value={preferences.weightUnit}
 				options={WEIGHT_OPTIONS}
 				onValueChange={(v) => onUpdate({ weightUnit: v })}
+			/>
+
+			<ThemedText style={styles.sectionLabel}>ONE-REP MAX</ThemedText>
+			<SettingRow
+				type="select"
+				label="1RM Formula"
+				description="Formula used to estimate your one-rep max"
+				value={preferences.oneRepMaxFormula}
+				options={E1RM_FORMULA_OPTIONS}
+				onValueChange={(v) => onUpdate({ oneRepMaxFormula: v })}
 			/>
 
 			<ThemedText style={styles.sectionLabel}>REST TIMER</ThemedText>

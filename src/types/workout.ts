@@ -111,6 +111,7 @@ export interface LoggedSet {
 	actualWeight: number;
 	completed: boolean;
 	isPersonalRecord: boolean;
+	estimatedOneRepMax?: number;
 }
 
 export interface LoggedExercise {
